@@ -2,9 +2,12 @@ import cv2
 import numpy as np
 import torch
 from torch.nn import functional as F
+import sys
 from yolact_utils.mmt import models
 from yolact_utils.mmt.utils.serialization import load_checkpoint, copy_state_dict
-import sys
+
+from pathlib import Path
+mmt_path = str(Path.home()) + '/Documents/AI_algorithms/mmt'
 
 
 class FastBaseTransform(torch.nn.Module):
@@ -46,7 +49,7 @@ class Reidentificator:
         self.model_REID.cuda()
         self.model_REID = torch.nn.DataParallel(self.model_REID)
         # TODO: change weights position and thing how to do it
-        checkpoint = load_checkpoint('/home/azunino/Documents/yolact/weights/resnet_ibn_REID.tar')
+        checkpoint = load_checkpoint(mmt_path+'/weights/resnet_ibn_REID.tar')
         copy_state_dict(checkpoint['state_dict'], self.model_REID)
         self.model_REID.eval()
         print('Done.')

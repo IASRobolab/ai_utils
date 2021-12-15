@@ -1,28 +1,21 @@
 #!/usr/bin/env python
 
 import sys
-
-# yolact_path = '/home/yolact/'
-yolact_path = '/home/azunino/Documents/yolact/'
-sys.path.append(yolact_path)
+from pathlib import Path
 from data import COLORS
 from yolact import Yolact
 from utils.augmentations import FastBaseTransform
 from utils import timer
 from utils.functions import SavePath
 from layers.output_utils import postprocess, undo_image_transformation
-
 from data import cfg, set_cfg
-
 import torch
-
 import torch.backends.cudnn as cudnn
 import argparse
-import time
-
 from collections import defaultdict
-
 import cv2
+
+yolact_path = str(Path.home()) + '/Documents/AI_algorithms/yolact'
 
 
 def str2bool(v):
