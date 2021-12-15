@@ -15,7 +15,7 @@ import argparse
 from collections import defaultdict
 import cv2
 
-yolact_path = str(Path.home()) + '/Documents/AI_algorithms/yolact'
+yolact_path = str(Path.home()) + '/Documents/yolact'
 
 
 def str2bool(v):
@@ -107,7 +107,7 @@ class YolactInference:
 
         img_gpu = img / 255.0
         h, w, _ = img.shape
-
+        
         with timer.env('Postprocess'):
             save = cfg.rescore_bbox
             cfg.rescore_bbox = True
@@ -123,6 +123,7 @@ class YolactInference:
             classes, scores, boxes = [x[idx].cpu().numpy() for x in t[:3]]
             masks = t[3][idx]
             masks_out = masks.detach().clone().cpu().numpy()
+            
 
         if self.display:
 
@@ -201,7 +202,7 @@ class YolactInference:
                             cv2.LINE_AA)
 
             if num_dets_to_consider == 0:
-                return img_numpy
+                return img_numpy, None
 
             if args.display_text or args.display_bboxes:
                 for j in reversed(range(num_dets_to_consider)):
@@ -239,20 +240,21 @@ class YolactInference:
         frame = torch.from_numpy(rgb).cuda().float()
         batch = FastBaseTransform()(frame.unsqueeze(0))
         preds = self.net(batch)
-
+        
         img_numpy, inference = self.prep_display(preds, frame)
 
         inference_out = {}
+        if inference is not None:
 
-        for idx, cls in enumerate(inference[0]):
-            # print(idx, cls)
-            if cls not in inference_out.keys():
-                inference_out[cls] = {}
-                inference_out[cls]['scores'] = []
-                inference_out[cls]['boxes'] = []
-                inference_out[cls]['masks'] = []
-            inference_out[cls]['scores'].append(inference[1][idx])
-            inference_out[cls]['boxes'].append(inference[2][idx])
-            inference_out[cls]['masks'].append(inference[3][idx])
-
+            for idx, cls in enumerate(inference[0]):
+                # print(idx, cls)
+                if cls not in inference_out.keys():
+                    inference_out[cls] = {}
+                    inference_out[cls]['scores'] = []
+                    inference_out[cls]['boxes'] = []
+                    inference_out[cls]['masks'] = []
+                inference_out[cls]['scores'].append(inference[1][idx])
+                inference_out[cls]['boxes'].append(inference[2][idx])
+                inference_out[cls]['masks'].append(inference[3][idx])
+        
         return img_numpy, inference_out

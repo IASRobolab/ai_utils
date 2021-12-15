@@ -7,7 +7,7 @@ from yolact_utils.mmt import models
 from yolact_utils.mmt.utils.serialization import load_checkpoint, copy_state_dict
 
 from pathlib import Path
-mmt_path = str(Path.home()) + '/Documents/AI_algorithms/mmt'
+mmt_path = str(Path.home()) + '/Documents/MMT'
 
 
 class FastBaseTransform(torch.nn.Module):
