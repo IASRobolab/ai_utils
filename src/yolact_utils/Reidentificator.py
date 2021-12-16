@@ -3,8 +3,8 @@ import numpy as np
 import torch
 from torch.nn import functional as F
 import sys
-from yolact_utils.mmt import models
-from yolact_utils.mmt.utils.serialization import load_checkpoint, copy_state_dict
+from mmt import models
+from mmt.utils.serialization import load_checkpoint, copy_state_dict
 
 from pathlib import Path
 mmt_path = str(Path.home()) + '/Documents/MMT'
