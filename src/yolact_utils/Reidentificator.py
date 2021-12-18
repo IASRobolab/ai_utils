@@ -7,7 +7,7 @@ from mmt import models
 from mmt.utils.serialization import load_checkpoint, copy_state_dict
 
 from pathlib import Path
-mmt_path = str(Path.home()) + '/Documents/MMT'
+home_path = str(Path.home())
 
 
 class FastBaseTransform(torch.nn.Module):
@@ -49,7 +49,7 @@ class Reidentificator:
         self.model_REID.cuda()
         self.model_REID = torch.nn.DataParallel(self.model_REID)
         # TODO: change weights position and thing how to do it
-        checkpoint = load_checkpoint(mmt_path+'/weights/resnet_ibn_REID.tar')
+        checkpoint = load_checkpoint(home_path + '/weights/resnet_ibn_REID.tar')
         copy_state_dict(checkpoint['state_dict'], self.model_REID)
         self.model_REID.eval()
         print('Done.')

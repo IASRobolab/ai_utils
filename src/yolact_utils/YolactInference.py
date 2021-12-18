@@ -15,8 +15,7 @@ import argparse
 from collections import defaultdict
 import cv2
 
-yolact_path = str(Path.home()) + '/Documents/yolact'
-
+home_path = str(Path.home())
 
 def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
@@ -71,7 +70,7 @@ class YolactInference:
         parse_args(argv)
         self.display = display  # boolean to chose if display image results or not
         self.score_threshold = score_threshold  # threshold used to filter the detectio results
-        trained_model = yolact_path+'/weights/'+trained_model
+        trained_model = home_path + '/weights/' + trained_model
         model_path = SavePath.from_str(trained_model)
         # TODO: Bad practice? Probably want to do a name lookup instead.
         args.config = model_path.model_name + '_config'
@@ -123,7 +122,6 @@ class YolactInference:
             classes, scores, boxes = [x[idx].cpu().numpy() for x in t[:3]]
             masks = t[3][idx]
             masks_out = masks.detach().clone().cpu().numpy()
-            
 
         if self.display:
 
@@ -236,7 +234,7 @@ class YolactInference:
         else:
             return img_numpy, [classes, scores, boxes, masks_out]
 
-    def img_inference(self, rgb, classes=[0]):
+    def img_inference(self, rgb, classes=[]):
         frame = torch.from_numpy(rgb).cuda().float()
         batch = FastBaseTransform()(frame.unsqueeze(0))
         preds = self.net(batch)
@@ -248,7 +246,7 @@ class YolactInference:
 
             for idx, cls in enumerate(inference[0]):
                 # print(idx, cls)
-                if cls not in inference_out.keys():
+                if cls not in inference_out.keys() and (cls in classes or not classes):
                     inference_out[cls] = {}
                     inference_out[cls]['scores'] = []
                     inference_out[cls]['boxes'] = []
