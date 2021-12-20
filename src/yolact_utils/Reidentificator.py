@@ -71,7 +71,9 @@ class Reidentificator:
             self.person_avg_feat = 0
             self.seq_n = 0
         else:
-            print("CALIBRATING ", int(self.seq_n / self.meas_init * 100), "%", end="\r")
+            percentage = int(self.seq_n / self.meas_init * 100)
+            if percentage % 10 == 0:
+                print("CALIBRATING ", percentage, "%")
             img_person = self.transform(
                 torch.from_numpy(rgb[boxes[0][1]:boxes[0][3], boxes[0][0]:boxes[0][2], :]).unsqueeze(0).cuda().float())
             self.seq_n += 1
