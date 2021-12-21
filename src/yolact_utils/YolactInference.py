@@ -63,29 +63,28 @@ def parse_args(argv=None):
 
 
 color_cache = defaultdict(lambda: {})
+weights_path = home_path + '/weights/yolact_plus_resnet50_54_800000.pth'
 
 
 class YolactInference:
 
     def __init__(self, display=False, score_threshold=0.5,
-                 trained_model='yolact_plus_resnet50_54_800000.pth', argv=None):
+                 model_weights=weights_path, argv=None):
         '''
         Yolact detector used to classify, detect and segment objects on an image
         :param display: boolean used to return the results plotted on image
         :param score_threshold: threshold used to filter the inference output which are more confident than the
         threshold
-        :param trained_model: the name of the model parameters used for the detection (they should be palced in
+        :param model_weights: the name of the model parameters used for the detection (they should be palced in
         the directory ~/weights)
         :param argv: additional parameters extracted from the parser
         '''
         parse_args(argv)
         self.display = display  # boolean to chose if display image results or not
         self.score_threshold = score_threshold  # threshold used to filter the detectio results
-        trained_model = home_path + '/weights/' + trained_model
-        model_path = SavePath.from_str(trained_model)
+        model_path = SavePath.from_str(model_weights)
         # TODO: Bad practice? Probably want to do a name lookup instead.
         args.config = model_path.model_name + '_config'
-        print('Config not specified. Parsed %s from the file name.\n' % args.config)
         set_cfg(args.config)
 
         with torch.no_grad():
@@ -98,7 +97,12 @@ class YolactInference:
 
             print('Loading YOLACT model...', end='')
             self.net = Yolact()
-            self.net.load_weights(trained_model)
+            try:
+                self.net.load_weights(model_weights)
+            except FileNotFoundError:
+                print('\n\033[91mThe weight in ' + model_weights + " does not exists. You must download them "
+                                                                   "in that directory.\033[0m")
+                exit(1)
             self.net.eval()
             print(' Done.')
 

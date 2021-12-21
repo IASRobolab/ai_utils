@@ -37,12 +37,15 @@ class FastBaseTransform(torch.nn.Module):
         return img
 
 
+weights_path = home_path + '/weights/resnet_ibn_REID.tar'
+
+
 class Reidentificator:
     '''
     Reidentify an object on an image using the inference output of another AI algorithm and calibration
     '''
 
-    def __init__(self, class_target, display_target=False):
+    def __init__(self, class_target, display_target=False, model_weights=weights_path):
         '''
         initialize the Re-identificator object
         :param class_target: the class of the object you want to track
@@ -59,7 +62,12 @@ class Reidentificator:
         self.model_REID.cuda()
         self.model_REID = torch.nn.DataParallel(self.model_REID)
         # TODO: change weights position and thing how to do it
-        checkpoint = load_checkpoint(home_path + '/weights/resnet_ibn_REID.tar')
+        try:
+            checkpoint = load_checkpoint(model_weights)
+        except ValueError:
+            print('\n\033[91mWeights not found in ' + model_weights + ". You must download them "
+                                                                      "in that directory.\033[0m")
+            exit(1)
         copy_state_dict(checkpoint['state_dict'], self.model_REID)
         self.model_REID.eval()
         print('Done.')
