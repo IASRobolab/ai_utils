@@ -36,9 +36,19 @@ class FastBaseTransform(torch.nn.Module):
         # Return value is in channel order [n, c, h, w] and RGB
         return img
 
+
 class Reidentificator:
+    '''
+    Reidentify an object on an image using the inference output of another AI algorithm and calibration
+    '''
 
     def __init__(self, class_target, display_target=False):
+        '''
+        initialize the Re-identificator object
+        :param class_target: the class of the object you want to track
+        :param display_target: boolean value to return an image which create a bounding box around the
+        re-identified object
+        '''
 
         self.class_target = class_target
         self.display_target = display_target
@@ -61,6 +71,14 @@ class Reidentificator:
         self.person_avg_feat = 0  # template feature
 
     def calibrate_person(self, rgb, inference_output):
+        '''
+        Function used to calibrate the reidentificator with the object image. This function should be called iteratively
+        until it returns True (i.e., when the object is calibrated)
+        :param rgb: the image in which there is the object
+        :param inference_output: a dictionary containing the inferences obtained by an instance segmentation algorithm
+        (e.g., Yolact++)
+        :return: A boolean which confirm if the object has been correctly calibrated or not
+        '''
         try:
             boxes = inference_output[self.class_target]['boxes']
         except KeyError:
@@ -89,6 +107,14 @@ class Reidentificator:
         return self.calibrated
 
     def reidentify(self, rgb, inference_output):
+        '''
+        Used to reidentify the calibrated object on the image (if present)
+        :param rgb: the image in which there should be the object to reidentify
+        :param inference_output: a dictionary containing the inferences obtained by an instance segmentation algorithm
+        (e.g., Yolact++)
+        :return: the image with a bounding box (depending on self.display_target) and the mask of the targeted object
+        reidentified
+        '''
         rgb = rgb.copy()
         if not self.calibrated:
             sys.exit("Error: Reidentificator not calibrated!")

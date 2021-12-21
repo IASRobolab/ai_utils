@@ -2,6 +2,8 @@
 
 import sys
 from pathlib import Path
+
+import numpy
 from data import COLORS
 from yolact import Yolact
 from utils.augmentations import FastBaseTransform
@@ -67,6 +69,15 @@ class YolactInference:
 
     def __init__(self, display=False, score_threshold=0.5,
                  trained_model='yolact_plus_resnet50_54_800000.pth', argv=None):
+        '''
+        Yolact detector used to classify, detect and segment objects on an image
+        :param display: boolean used to return the results plotted on image
+        :param score_threshold: threshold used to filter the inference output which are more confident than the
+        threshold
+        :param trained_model: the name of the model parameters used for the detection (they should be palced in
+        the directory ~/weights)
+        :param argv: additional parameters extracted from the parser
+        '''
         parse_args(argv)
         self.display = display  # boolean to chose if display image results or not
         self.score_threshold = score_threshold  # threshold used to filter the detectio results
@@ -99,6 +110,15 @@ class YolactInference:
             cfg.mask_proto_debug = args.mask_proto_debug
 
     def prep_display(self, dets_out, img, class_color=True, fps_str=''):
+        '''
+        Function which create the image with the results and perform the detection
+        :param dets_out: the inference output of the network
+        :param img: the original image
+        :param class_color: boolean used to format the same class objects with the same color
+        :param fps_str: mica lo so che vor dì
+        :return: the image formatted with the results (if self.display is True) and the reformatted inference outputs
+        [classes, scores, boxes, masks_out]
+        '''
         img_orig = img.byte().cpu().numpy()
         img_numpy = None
 
@@ -234,7 +254,17 @@ class YolactInference:
         else:
             return img_numpy, [classes, scores, boxes, masks_out]
 
-    def img_inference(self, rgb, classes=[]):
+    def img_inference(self, rgb, classes=None):
+        '''
+        Used to make the inference on an image depending on the weight with which the object has been initialized
+        :param rgb: the image on which make the inference
+        :param classes: a list containing the classes we want to detect
+        :return: the image formatted with the results (if self.display is True) and a dictionary containing the
+        inferences e.g., {'class_0': {'scores': [s1, s2], 'boxes': [b1, b2], 'masks': [m1, m2]},
+                          'class_1': {'scores': [s1], 'boxes': [b1], 'masks': [m2]}, OTHER_CLASSES..}
+        '''
+        if classes is None:
+            classes = []
         frame = torch.from_numpy(rgb).cuda().float()
         batch = FastBaseTransform()(frame.unsqueeze(0))
         preds = self.net(batch)
@@ -245,14 +275,14 @@ class YolactInference:
         if inference is not None:
 
             for idx, cls in enumerate(inference[0]):
-                # print(idx, cls)
-                if cls not in inference_out.keys() and (cls in classes or not classes):
-                    inference_out[cls] = {}
-                    inference_out[cls]['scores'] = []
-                    inference_out[cls]['boxes'] = []
-                    inference_out[cls]['masks'] = []
-                inference_out[cls]['scores'].append(inference[1][idx])
-                inference_out[cls]['boxes'].append(inference[2][idx])
-                inference_out[cls]['masks'].append(inference[3][idx])
-        
+                if not classes or cls in classes:
+                    if cls not in inference_out.keys():
+                        inference_out[cls] = {}
+                        inference_out[cls]['scores'] = []
+                        inference_out[cls]['boxes'] = []
+                        inference_out[cls]['masks'] = []
+                    inference_out[cls]['scores'].append(inference[1][idx])
+                    inference_out[cls]['boxes'].append(inference[2][idx])
+                    inference_out[cls]['masks'].append(inference[3][idx])
+
         return img_numpy, inference_out
