@@ -59,7 +59,8 @@ def parse_args(argv=None):
                         display_fps=False)
 
     global args
-    args = parser.parse_args(argv)
+    args, unknown = parser.parse_known_args()
+    # args = parser.parse_args(argv)
 
 
 color_cache = defaultdict(lambda: {})
