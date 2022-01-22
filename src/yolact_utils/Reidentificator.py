@@ -61,7 +61,6 @@ class Reidentificator:
         self.model_REID = models.create('resnet_ibn50a', pretrained=False, num_features=0, dropout=0, num_classes=0)
         self.model_REID.cuda()
         self.model_REID = torch.nn.DataParallel(self.model_REID)
-        # TODO: change weights position and thing how to do it
         try:
             checkpoint = load_checkpoint(model_weights)
         except ValueError:

@@ -84,7 +84,6 @@ class YolactInference:
         self.display = display  # boolean to chose if display image results or not
         self.score_threshold = score_threshold  # threshold used to filter the detectio results
         model_path = SavePath.from_str(model_weights)
-        # TODO: Bad practice? Probably want to do a name lookup instead.
         args.config = model_path.model_name + '_config'
         set_cfg(args.config)
 
