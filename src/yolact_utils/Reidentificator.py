@@ -148,6 +148,8 @@ class Reidentificator:
         feat_pers = self.model_REID(img_persons).data.cpu()
         ### COMPUTE FEATURES DISTANCES
         dist = np.linalg.norm(feat_pers - person_avg_feat_temp, axis=1)
+        if np.min(dist)>1:
+          return rgb, None
         target_idx = np.argmin(dist)
         # print(np.sort(dist))
         # Todo: if dist è maggiore di una threshold allora non tornare nulla
