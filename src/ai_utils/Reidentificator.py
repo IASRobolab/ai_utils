@@ -58,7 +58,7 @@ class Reidentificator:
 
         self.transform = torch.nn.DataParallel(FastBaseTransform()).cuda()
         print('Loading REID model...', end='')
-        self.model_REID = models.create('resnet_ibn50a', pretrained=False, num_features=0, dropout=0, num_classes=0)
+        self.model_REID = models.create('resnet_ibn50a', pretrained=False, num_features=0, dropout=0, num_classes=0, norm=True)
         self.model_REID.cuda()
         self.model_REID = torch.nn.DataParallel(self.model_REID)
         try:
@@ -88,6 +88,7 @@ class Reidentificator:
         '''
         try:
             boxes = inference_output[self.class_target]['boxes']
+            masks = inference_output[self.class_target]['masks']
         except KeyError:
             return self.calibrated
 
@@ -96,6 +97,8 @@ class Reidentificator:
             self.person_avg_feat = 0
             self.seq_n = 0
         else:
+            for i in range(3):
+                    rgb[:,:,i] = rgb[:,:,i] * masks[0]
             percentage = int(self.seq_n / self.meas_init * 100)
             if percentage % 10 == 0:
                 print("CALIBRATING ", percentage, "%")
@@ -138,8 +141,12 @@ class Reidentificator:
         person_avg_feat_temp = np.tile(self.person_avg_feat, (len(boxes), 1))
         ### CUT THE BOUNDING BOXES OF THE DETECTED PERSONS OVER THE IMAGE
         for id in range(len(boxes)):
+            rgb_new = rgb.copy()
+            #pdb.set_trace()
+            for i in range(3):
+                rgb_new[:,:,i] = rgb_new[:,:,i] * masks[id]
             person_bb = self.transform(
-                torch.from_numpy(rgb[boxes[id][1]:boxes[id][3], boxes[id][0]:boxes[id][2], :]).unsqueeze(
+                torch.from_numpy(rgb_new[boxes[id][1]:boxes[id][3], boxes[id][0]:boxes[id][2], :]).unsqueeze(
                     0).cuda().float())
             img_persons.append(person_bb[0])
         img_persons = [img_person.cuda().float() for img_person in img_persons]

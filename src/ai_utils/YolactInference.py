@@ -273,7 +273,8 @@ class YolactInference:
         batch = FastBaseTransform()(frame.unsqueeze(0))
         preds = self.net(batch)
         
-        img_numpy, inference = self.prep_display(preds, frame)
+        with torch.no_grad():
+            img_numpy, inference = self.prep_display(preds, frame)
 
         inference_out = {}
         if inference is not None:
