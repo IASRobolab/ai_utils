@@ -75,7 +75,7 @@ class VisualizationDemo(object):
 
         self.predictor = DefaultPredictor(cfg)
 
-    def run_on_image(self, image, display_img):
+    def run_on_image(self, image, display_img, classes=None):
         """
         Args:
             image (np.ndarray): an image of shape (H, W, C) (in BGR order).
@@ -85,7 +85,9 @@ class VisualizationDemo(object):
             predictions (dict): the output of the model.
             vis_output (VisImage): the visualized image output.
         """
-        classes = self.metadata.stuff_classes
+        available_classes = self.metadata.stuff_classes
+        if classes is None:
+            classes = []
 
         predictions = self.predictor(image)
         panoptic_seg, segments_info = predictions["panoptic_seg"]
@@ -94,14 +96,15 @@ class VisualizationDemo(object):
         # format the predicted output in a standard Rollo format
         inference_out = {}
         for sinfo in segments_info:
-            current_class = classes[sinfo['category_id']]
+            current_class = available_classes[sinfo['category_id']]
             current_id = sinfo['id']
-            if current_class not in inference_out.keys():
-                inference_out[current_class] = {}
-                inference_out[current_class]['masks'] = []
-            inference_out[current_class]['masks'].append(
-                (panoptic_seg[0].detach().cpu().numpy() == current_id).astype(int)
-            )
+            if not classes or current_class in classes:
+                if current_class not in inference_out.keys():
+                    inference_out[current_class] = {}
+                    inference_out[current_class]['masks'] = []
+                inference_out[current_class]['masks'].append(
+                    (panoptic_seg[0].detach().cpu().numpy() == current_id).astype(int)
+                )
 
         # returns only prediction  if you don't want to display the formatted image
         if  display_img:
@@ -113,7 +116,7 @@ class VisualizationDemo(object):
                                                                                   segments_info)
             image = vis_output.get_image()[:, :, ::-1]
 
-        return inference_out, image
+        return image, inference_out
 
 
 class Mask2FormerInference:
@@ -134,9 +137,9 @@ class Mask2FormerInference:
 
         self.demo = VisualizationDemo(cfg)
 
-    def img_inference(self, img):
+    def img_inference(self, img, classes=None):
         # predictions, visualized_output = demo.run_on_image(image)
 
-        inference_out, visualized_output = self.demo.run_on_image(img, self.display_img)
+        visualized_output, inference_out  = self.demo.run_on_image(img, self.display_img, classes)
 
-        return inference_out, visualized_output
+        return visualized_output, inference_out
