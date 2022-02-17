@@ -280,6 +280,7 @@ class YolactInference:
         if inference is not None:
 
             for idx, cls in enumerate(inference[0]):
+                cls = cfg.dataset.class_names[cls]
                 if not classes or cls in classes:
                     if cls not in inference_out.keys():
                         inference_out[cls] = {}
