@@ -23,6 +23,7 @@ from detectron2.utils.visualizer import ColorMode, Visualizer
 import mask2former.maskformer_model
 from mask2former import add_maskformer2_config
 
+
 def setup_cfg(args):
     # load config from file and command-line arguments
     cfg = get_cfg()
@@ -74,39 +75,51 @@ class VisualizationDemo(object):
 
         self.predictor = DefaultPredictor(cfg)
 
-    def run_on_image(self, image):
+    def run_on_image(self, image, display_img):
         """
         Args:
             image (np.ndarray): an image of shape (H, W, C) (in BGR order).
                 This is the format used by OpenCV.
+            display_img (bool): True if you want to print segmentation on image, False otherwise
         Returns:
             predictions (dict): the output of the model.
             vis_output (VisImage): the visualized image output.
         """
-        vect_semantics = []
-        vis_output = None
-        predictions = self.predictor(image)
-        # Convert image from OpenCV BGR format to Matplotlib RGB format.
-        image = image[:, :, ::-1]
-        visualizer = Visualizer(image, self.metadata, instance_mode=self.instance_mode)
-        if "panoptic_seg" in predictions:
-            panoptic_seg, segments_info = predictions["panoptic_seg"]
-            vis_output, vect_semantics = visualizer.draw_panoptic_seg_predictions(panoptic_seg.to(self.cpu_device), segments_info)
-        else:
-            if "sem_seg" in predictions:
-                vis_output = visualizer.draw_sem_seg(
-                    predictions["sem_seg"].argmax(dim=0).to(self.cpu_device)
-                )
-            if "instances" in predictions:
-                instances = predictions["instances"].to(self.cpu_device)
-                vis_output = visualizer.draw_instance_predictions(predictions=instances)
+        classes = self.metadata.stuff_classes
 
-        return predictions, vis_output, vect_semantics
+        predictions = self.predictor(image)
+        panoptic_seg, segments_info = predictions["panoptic_seg"]
+
+        # TODO: control if predicitions could be none
+        # format the predicted output in a standard Rollo format
+        inference_out = {}
+        for sinfo in segments_info:
+            current_class = classes[sinfo['category_id']]
+            current_id = sinfo['id']
+            if current_class not in inference_out.keys():
+                inference_out[current_class] = {}
+                inference_out[current_class]['masks'] = []
+            inference_out[current_class]['masks'].append(
+                (panoptic_seg[0].detach().cpu().numpy() == current_id).astype(int)
+            )
+
+        # returns only prediction  if you don't want to display the formatted image
+        if  display_img:
+            # Convert image from OpenCV BGR format to Matplotlib RGB format.
+            image = image[:, :, ::-1]
+            visualizer = Visualizer(image, self.metadata, instance_mode=self.instance_mode)
+
+            vis_output, vect_semantics = visualizer.draw_panoptic_seg_predictions(panoptic_seg.to(self.cpu_device),
+                                                                                  segments_info)
+            image = vis_output.get_image()[:, :, ::-1]
+
+        return inference_out, image
 
 
 class Mask2FormerInference:
 
-    def __init__(self, model_weights, config_file,  display=False):
+    def __init__(self, model_weights, config_file,  display_img=False):
+        self.display_img = display_img
 
         mp.set_start_method("spawn", force=True)
         argv = ["--config-file", config_file, "--opts", "MODEL.WEIGHTS", model_weights]
@@ -124,8 +137,6 @@ class Mask2FormerInference:
     def img_inference(self, img):
         # predictions, visualized_output = demo.run_on_image(image)
 
-        predictions, visualized_output, vect_semantics = self.demo.run_on_image(img)
+        inference_out, visualized_output = self.demo.run_on_image(img, self.display_img)
 
-        # TODO: format prediction output with dict
-
-        return predictions, visualized_output, vect_semantics
+        return inference_out, visualized_output
