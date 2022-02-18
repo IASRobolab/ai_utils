@@ -103,7 +103,7 @@ class VisualizationDemo(object):
                     inference_out[current_class] = {}
                     inference_out[current_class]['masks'] = []
                 inference_out[current_class]['masks'].append(
-                    (panoptic_seg[0].detach().cpu().numpy() == current_id).astype(int)
+                    (panoptic_seg.detach().cpu().numpy() == current_id).astype(int)
                 )
 
         # returns only prediction  if you don't want to display the formatted image
