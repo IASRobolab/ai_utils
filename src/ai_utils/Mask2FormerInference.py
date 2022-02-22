@@ -81,11 +81,13 @@ class VisualizationDemo(object):
             image (np.ndarray): an image of shape (H, W, C) (in BGR order).
                 This is the format used by OpenCV.
             display_img (bool): True if you want to print segmentation on image, False otherwise
+            classes (list): a list containing the classes names that we want to extract from picture
         Returns:
             predictions (dict): the output of the model.
             vis_output (VisImage): the visualized image output.
         """
         available_classes = self.metadata.stuff_classes
+
         if classes is None:
             classes = []
 
@@ -138,8 +140,7 @@ class Mask2FormerInference:
         self.demo = VisualizationDemo(cfg)
 
     def img_inference(self, img, classes=None):
-        # predictions, visualized_output = demo.run_on_image(image)
 
-        visualized_output, inference_out  = self.demo.run_on_image(img, self.display_img, classes)
+        visualized_output, inference_out = self.demo.run_on_image(img, self.display_img, classes)
 
         return visualized_output, inference_out
