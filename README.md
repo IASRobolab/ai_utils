@@ -181,9 +181,8 @@ Moreover, to use Yolact++ you need to install DCNv2. There exists two versions o
 (DCNv2 and DCNv2_latest directories). Choose the version you need to use:
 - DCNv2 is used for OLDER GPU architectures (compatible with older pytorch version)
 - DCNv2_latest is used for NEWER GPU architectures (compatible with latest pytorch version)
-please substitute YOUR_DCNv2_FOLDER with DCNv2 or DCNv2_latest in the following
 
-To install it, run:
+To install it, substitute YOUR_DCNv2_FOLDER with DCNv2 or DCNv2_latest in the following:
 ```
   cd YOUR_YOLACT_PATH/yolact/external/YOUR_DCNv2_FOLDER
   python setup.py build develop
