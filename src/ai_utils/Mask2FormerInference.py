@@ -99,6 +99,7 @@ class VisualizationDemo(object):
         inference_out = {}
         for sinfo in segments_info:
             current_class = available_classes[sinfo['category_id']]
+            current_class = current_class.split(",")[0]
             current_id = sinfo['id']
             if not classes or current_class in classes:
                 if current_class not in inference_out.keys():
