@@ -18,6 +18,7 @@ This package is aimed to contain different wrappers for the AI algorithms used i
   - [Yolact++](#yolact++-installation)
   - [Mask2Former](#mask2former-installation)
   - [MMT](#mmt-installation)
+- [Find packacge directory path](#find-package-path)
 
 # Setup and Run
 
@@ -219,7 +220,25 @@ First of all, clone the custom MMT repository, which contains the setup.py file,
 change after installation). This repository has been slightly modified by the Robolab Leonardo fellows.
 
 To install MMT on your pip environment, activate your environment (or install directly on system if you prefer) and run:
-```
+```commandline
   cd YOUR_MMT_PATH/MMT
   python setup.py install
 ```
+
+# Find package path
+If you are using a standard Cmake package configuration you should save your network weights or config files directly 
+inside your package under a custom directory ```e.g., YOUR_PACKAGE_PATH/weights/YOUR_WEIGHT)```. \
+You'll probably need your package path in your code to use the AI algorithms (e.g., to load neural network weights).
+If the files are saved as has been declared above you can use the following command to retrieve the package path 
+```python
+import os
+pkg_dir_name = '/' + os.path.join(*os.path.abspath(__file__).split('/')[:-2])
+```
+
+
+
+
+
+
+
+
