@@ -133,7 +133,7 @@ class Reidentificator:
             boxes = inference_output[self.class_target]['boxes']
             masks = inference_output[self.class_target]['masks']
         except KeyError:
-            print("No target detected")
+#            print("No target detected")
             return rgb, None
 
         img_persons = []
