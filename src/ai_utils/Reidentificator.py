@@ -133,7 +133,6 @@ class Reidentificator:
             boxes = inference_output[self.class_target]['boxes']
             masks = inference_output[self.class_target]['masks']
         except KeyError:
-#            print("No target detected")
             return rgb, None
 
         img_persons = []
@@ -142,9 +141,8 @@ class Reidentificator:
         ### CUT THE BOUNDING BOXES OF THE DETECTED PERSONS OVER THE IMAGE
         for id in range(len(boxes)):
             rgb_new = rgb.copy()
-            #pdb.set_trace()
             for i in range(3):
-                rgb_new[:,:,i] = rgb_new[:,:,i] * masks[id]
+                rgb_new[:, :, i] = rgb_new[:, :, i] * masks[id]
             person_bb = self.transform(
                 torch.from_numpy(rgb_new[boxes[id][1]:boxes[id][3], boxes[id][0]:boxes[id][2], :]).unsqueeze(
                     0).cuda().float())
@@ -179,4 +177,6 @@ class Reidentificator:
             cv2.putText(rgb, text_str, text_pt, font_face, font_scale, text_color, font_thickness,
                         cv2.LINE_AA)
 
-        return rgb, masks[target_idx]
+        reidentified_class = {"class": self.class_target, "boxes": boxes[target_idx], "masks": masks[target_idx]}
+
+        return rgb, reidentified_class
