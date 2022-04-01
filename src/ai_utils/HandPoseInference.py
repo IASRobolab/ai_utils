@@ -32,13 +32,17 @@ class HandPoseInference:
         results = self.hands.process(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
         img.flags.writeable = True
 
+        if self.flip_image:
+            img = cv2.flip(img, 1)
+
         hands_detected = {}
         # if not hands found on image raise a valueError exception
         if not results.multi_hand_landmarks:
-            raise ValueError("No hands has been found on image! "
-                             "You should catch this exception to handle the image without hands case.")
+            return img, None
 
         if self.display:
+            if self.flip_image:
+                img = cv2.flip(img, 1)
             image_height, image_width, _ = img.shape
             for hand_landmarks in results.multi_hand_landmarks:
                 for point_handmark in hand_landmarks.landmark:
@@ -47,6 +51,10 @@ class HandPoseInference:
                     # TODO: use z position to increase and decrease circle size
                     # print(point_position_x, point_position_y)
                     cv2.circle(img, (point_position_x, point_position_y), 3, (0, 0, 255), 3)
+            if self.flip_image:
+                img = cv2.flip(img, 1)
+
+
 
         # retrieve hand world coordinate points
         for hand_idx in range(len(results.multi_hand_world_landmarks)):
