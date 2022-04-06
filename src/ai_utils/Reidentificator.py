@@ -6,9 +6,6 @@ import sys
 from mmt import models
 from mmt.utils.serialization import load_checkpoint, copy_state_dict
 
-from pathlib import Path
-home_path = str(Path.home())
-
 
 class FastBaseTransform(torch.nn.Module):
     """
@@ -37,15 +34,12 @@ class FastBaseTransform(torch.nn.Module):
         return img
 
 
-weights_path = home_path + '/weights/resnet_ibn_REID.tar'
-
-
 class Reidentificator:
     '''
     Reidentify an object on an image using the inference output of another AI algorithm and calibration
     '''
 
-    def __init__(self, class_target, display_img=False, model_weights=weights_path):
+    def __init__(self, class_target, model_weights, display_img=False):
         '''
         initialize the Re-identificator object
         :param class_target: the class of the object you want to track

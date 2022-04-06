@@ -1,9 +1,5 @@
 #!/usr/bin/env python
 
-import sys
-from pathlib import Path
-
-import numpy
 from data import COLORS
 from yolact import Yolact
 from utils.augmentations import FastBaseTransform
@@ -18,7 +14,6 @@ from collections import defaultdict
 import cv2
 
 
-
 def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
         return True
@@ -29,8 +24,7 @@ def str2bool(v):
 
 
 def parse_args(argv=None):
-    parser = argparse.ArgumentParser(
-        description='YOLACT COCO Evaluation')
+    parser = argparse.ArgumentParser(description='YOLACT COCO Evaluation')
     parser.add_argument('--top_k', default=15, type=int,
                         help='Further restrict the number of predictions to parse')
     parser.add_argument('--cuda', default=True, type=str2bool,
@@ -58,9 +52,9 @@ def parse_args(argv=None):
     parser.set_defaults(mask_proto_debug=False, crop=True, detect=False,
                         display_fps=False)
 
-    global args
     args, unknown = parser.parse_known_args()
-    # args = parser.parse_args(argv)
+
+    return args
 
 
 color_cache = defaultdict(lambda: {})
@@ -78,16 +72,16 @@ class YolactInference:
         the directory ~/weights)
         :param argv: additional parameters extracted from the parser
         '''
-        parse_args(argv)
+        self.args = parse_args(argv)
         self.display_img = display_img  # boolean to chose if display image results or not
         self.score_threshold = score_threshold  # threshold used to filter the detectio results
         model_path = SavePath.from_str(model_weights)
-        args.config = model_path.model_name + '_config'
-        set_cfg(args.config)
+        self.args.config = model_path.model_name + '_config'
+        set_cfg(self.args.config)
 
         with torch.no_grad():
 
-            if args.cuda:
+            if self.args.cuda:
                 cudnn.fastest = True
                 torch.set_default_tensor_type('torch.cuda.FloatTensor')
             else:
@@ -104,12 +98,12 @@ class YolactInference:
             self.net.eval()
             print(' Done.')
 
-            if args.cuda:
+            if self.args.cuda:
                 self.net = self.net.cuda()
 
-            self.net.detect.use_fast_nms = args.fast_nms
-            self.net.detect.use_cross_class_nms = args.cross_class_nms
-            cfg.mask_proto_debug = args.mask_proto_debug
+            self.net.detect.use_fast_nms = self.args.fast_nms
+            self.net.detect.use_cross_class_nms = self.args.cross_class_nms
+            cfg.mask_proto_debug = self.args.mask_proto_debug
 
     def prep_display(self, dets_out, img, class_color=True, fps_str=''):
         '''
@@ -121,8 +115,6 @@ class YolactInference:
         :return: the image formatted with the results (if self.display is True) and the reformatted inference outputs
         [classes, scores, boxes, masks_out]
         '''
-        img_orig = img.byte().cpu().numpy()
-        img_numpy = None
 
         mask_alpha = 0.5
 
@@ -132,14 +124,14 @@ class YolactInference:
         with timer.env('Postprocess'):
             save = cfg.rescore_bbox
             cfg.rescore_bbox = True
-            t = postprocess(dets_out, w, h, visualize_lincomb=args.display_lincomb,
-                            crop_masks=args.crop,
+            t = postprocess(dets_out, w, h, visualize_lincomb=self.args.display_lincomb,
+                            crop_masks=self.args.crop,
                             score_threshold=self.score_threshold)
             cfg.rescore_bbox = save
 
         with timer.env('Copy'):
 
-            idx = t[1].argsort(0, descending=True)[:args.top_k]
+            idx = t[1].argsort(0, descending=True)[:self.args.top_k]
 
             classes, scores, boxes = [x[idx].cpu().numpy() for x in t[:3]]
             masks = t[3][idx]
@@ -147,7 +139,7 @@ class YolactInference:
 
         if self.display_img:
 
-            num_dets_to_consider = min(args.top_k, classes.shape[0])
+            num_dets_to_consider = min(self.args.top_k, classes.shape[0])
             for j in range(num_dets_to_consider):
                 if scores[j] < self.score_threshold:
                     num_dets_to_consider = j
@@ -174,7 +166,7 @@ class YolactInference:
             # First, draw the masks on the GPU where we can do it really fast
             # Beware: very fast but possibly unintelligible mask-drawing code ahead
             # I wish I had access to OpenGL or Vulkan but alas, I guess Pytorch tensor operations will have to suffice
-            if args.display_masks and cfg.eval_mask_branch and num_dets_to_consider > 0:
+            if self.args.display_masks and cfg.eval_mask_branch and num_dets_to_consider > 0:
                 # After this, mask is of size [num_dets, h, w, 1]
                 masks = masks[:num_dets_to_consider, :, :, None]
 
@@ -199,7 +191,7 @@ class YolactInference:
 
                 img_gpu = img_gpu * inv_alph_masks.prod(dim=0) + masks_color_summand
 
-            if args.display_fps:
+            if self.args.display_fps:
                 # Draw the box for the fps on the GPU
                 font_face = cv2.FONT_HERSHEY_DUPLEX
                 font_scale = 0.6
@@ -213,7 +205,7 @@ class YolactInference:
             # Note, make sure this is a uint8 tensor or opencv will not anti alias text for whatever reason
             img_numpy = (img_gpu * 255).byte().cpu().numpy()
 
-            if args.display_fps:
+            if self.args.display_fps:
                 # Draw the text on the CPU
                 text_pt = (4, text_h + 2)
                 text_color = [255, 255, 255]
@@ -224,18 +216,18 @@ class YolactInference:
             if num_dets_to_consider == 0:
                 return img_numpy, None
 
-            if args.display_text or args.display_bboxes:
+            if self.args.display_text or self.args.display_bboxes:
                 for j in reversed(range(num_dets_to_consider)):
                     x1, y1, x2, y2 = boxes[j, :]
                     color = get_color(j)
                     score = scores[j]
 
-                    if args.display_bboxes:
+                    if self.args.display_bboxes:
                         cv2.rectangle(img_numpy, (x1, y1), (x2, y2), color, 1)
 
-                    if args.display_text:
+                    if self.args.display_text:
                         _class = cfg.dataset.class_names[classes[j]]
-                        text_str = '%s: %.2f' % (_class, score) if args.display_scores else _class
+                        text_str = '%s: %.2f' % (_class, score) if self.args.display_scores else _class
 
                         font_face = cv2.FONT_HERSHEY_DUPLEX
                         font_scale = 0.6
