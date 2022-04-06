@@ -17,7 +17,7 @@ import argparse
 from collections import defaultdict
 import cv2
 
-home_path = str(Path.home())
+
 
 def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
@@ -64,16 +64,14 @@ def parse_args(argv=None):
 
 
 color_cache = defaultdict(lambda: {})
-weights_path = home_path + '/weights/yolact_plus_resnet50_54_800000.pth'
 
 
 class YolactInference:
 
-    def __init__(self, display=False, score_threshold=0.5,
-                 model_weights=weights_path, argv=None):
+    def __init__(self, model_weights, display_img=False, score_threshold=0.5, argv=None):
         '''
         Yolact detector used to classify, detect and segment objects on an image
-        :param display: boolean used to return the results plotted on image
+        :param display_img: boolean used to return the results plotted on image
         :param score_threshold: threshold used to filter the inference output which are more confident than the
         threshold
         :param model_weights: the name of the model parameters used for the detection (they should be palced in
@@ -81,7 +79,7 @@ class YolactInference:
         :param argv: additional parameters extracted from the parser
         '''
         parse_args(argv)
-        self.display = display  # boolean to chose if display image results or not
+        self.display_img = display_img  # boolean to chose if display image results or not
         self.score_threshold = score_threshold  # threshold used to filter the detectio results
         model_path = SavePath.from_str(model_weights)
         args.config = model_path.model_name + '_config'
@@ -147,7 +145,7 @@ class YolactInference:
             masks = t[3][idx]
             masks_out = masks.detach().clone().cpu().numpy()
 
-        if self.display:
+        if self.display_img:
 
             num_dets_to_consider = min(args.top_k, classes.shape[0])
             for j in range(num_dets_to_consider):
@@ -253,10 +251,14 @@ class YolactInference:
                                     font_thickness,
                                     cv2.LINE_AA)
 
-        if img_numpy is None:
-            return img_orig, [classes, scores, boxes, masks_out]
-        else:
-            return img_numpy, [classes, scores, boxes, masks_out]
+            cv2.namedWindow("Yolact", cv2.WINDOW_NORMAL)
+            cv2.imshow("Yolact", img_numpy)
+
+            if cv2.waitKey(1) == ord('q'):
+                print("Closed Yolact Image Viewer.")
+                exit(0)
+
+        return [classes, scores, boxes, masks_out]
 
     def img_inference(self, rgb, classes=None):
         '''
@@ -274,7 +276,7 @@ class YolactInference:
         preds = self.net(batch)
         
         with torch.no_grad():
-            img_numpy, inference = self.prep_display(preds, frame)
+            inference = self.prep_display(preds, frame)
 
         inference_out = {}
         if inference is not None:
@@ -291,4 +293,4 @@ class YolactInference:
                     inference_out[cls]['boxes'].append(inference[2][idx])
                     inference_out[cls]['masks'].append(inference[3][idx])
 
-        return img_numpy, inference_out
+        return inference_out

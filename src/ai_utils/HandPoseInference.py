@@ -36,40 +36,45 @@ class HandPoseInference:
             img = cv2.flip(img, 1)
 
         hands_detected = {}
-        # if not hands found on image raise a valueError exception
+        # if not hands found on image return None
         if not results.multi_hand_landmarks:
-            return img, None
+            hands_detected = None
+        else:
+            if self.display:
+                if self.flip_image:
+                    img = cv2.flip(img, 1)
+                image_height, image_width, _ = img.shape
+                for hand_landmarks in results.multi_hand_landmarks:
+                    for point_handmark in hand_landmarks.landmark:
+                        point_position_x = int(point_handmark.x * image_width)
+                        point_position_y = int(point_handmark.y * image_height)
+                        # TODO: use z position to increase and decrease circle size
+                        # print(point_position_x, point_position_y)
+                        cv2.circle(img, (point_position_x, point_position_y), 3, (0, 0, 255), 3)
+                if self.flip_image:
+                    img = cv2.flip(img, 1)
 
-        if self.display:
-            if self.flip_image:
-                img = cv2.flip(img, 1)
-            image_height, image_width, _ = img.shape
-            for hand_landmarks in results.multi_hand_landmarks:
+                cv2.namedWindow("HandPose", cv2.WINDOW_NORMAL)
+                cv2.imshow("HandPose", img)
+
+                if cv2.waitKey(1) == ord('q'):
+                    print("Closed HandPose Image Viewer.")
+                    exit(0)
+
+            # retrieve hand world coordinate points
+            for hand_idx in range(len(results.multi_hand_world_landmarks)):
+                hand_output = []
+                hand_landmarks = results.multi_hand_world_landmarks[hand_idx]
+                hand_type = results.multi_handedness[hand_idx].classification[0].label
                 for point_handmark in hand_landmarks.landmark:
-                    point_position_x = int(point_handmark.x * image_width)
-                    point_position_y = int(point_handmark.y * image_height)
-                    # TODO: use z position to increase and decrease circle size
-                    # print(point_position_x, point_position_y)
-                    cv2.circle(img, (point_position_x, point_position_y), 3, (0, 0, 255), 3)
-            if self.flip_image:
-                img = cv2.flip(img, 1)
+                    point_x = point_handmark.x
+                    point_y = point_handmark.y
+                    point_z = point_handmark.z
+                    hand_output.append([point_x, point_y, point_z])
+                if self.flatten:
+                    hand_output = [item for sublist in hand_output for item in sublist]
+                if not (hand_type in hands_detected.keys()):
+                    hands_detected[hand_type] = []
+                hands_detected[hand_type] = hand_output
 
-
-
-        # retrieve hand world coordinate points
-        for hand_idx in range(len(results.multi_hand_world_landmarks)):
-            hand_output = []
-            hand_landmarks = results.multi_hand_world_landmarks[hand_idx]
-            hand_type = results.multi_handedness[hand_idx].classification[0].label
-            for point_handmark in hand_landmarks.landmark:
-                point_x = point_handmark.x
-                point_y = point_handmark.y
-                point_z = point_handmark.z
-                hand_output.append([point_x, point_y, point_z])
-            if self.flatten:
-                hand_output = [item for sublist in hand_output for item in sublist]
-            if not (hand_type in hands_detected.keys()):
-                hands_detected[hand_type] = []
-            hands_detected[hand_type] = hand_output
-
-        return img, hands_detected
+        return hands_detected

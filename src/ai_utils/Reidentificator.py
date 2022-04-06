@@ -45,16 +45,16 @@ class Reidentificator:
     Reidentify an object on an image using the inference output of another AI algorithm and calibration
     '''
 
-    def __init__(self, class_target, display_target=False, model_weights=weights_path):
+    def __init__(self, class_target, display_img=False, model_weights=weights_path):
         '''
         initialize the Re-identificator object
         :param class_target: the class of the object you want to track
-        :param display_target: boolean value to return an image which create a bounding box around the
+        :param display_img: boolean value to return an image which create a bounding box around the
         re-identified object
         '''
 
         self.class_target = class_target
-        self.display_target = display_target
+        self.display_img = display_img
 
         self.transform = torch.nn.DataParallel(FastBaseTransform()).cuda()
         print('Loading REID model...', end='')
@@ -132,51 +132,65 @@ class Reidentificator:
         try:
             boxes = inference_output[self.class_target]['boxes']
             masks = inference_output[self.class_target]['masks']
+
+            img_persons = []
+            # COPY THE FEATURES TEMPLATE ACCORDINGLY TO NUMBER OF DETECTED PERSONS FOR FAST DISTANCE COMPUTATION
+            person_avg_feat_temp = np.tile(self.person_avg_feat, (len(boxes), 1))
+            # CUT THE BOUNDING BOXES OF THE DETECTED PERSONS OVER THE IMAGE
+            for id in range(len(boxes)):
+                rgb_new = rgb.copy()
+                for i in range(3):
+                    rgb_new[:, :, i] = rgb_new[:, :, i] * masks[id]
+                person_bb = self.transform(
+                    torch.from_numpy(rgb_new[boxes[id][1]:boxes[id][3], boxes[id][0]:boxes[id][2], :]).unsqueeze(
+                        0).cuda().float())
+                img_persons.append(person_bb[0])
+            img_persons = [img_person.cuda().float() for img_person in img_persons]
+            img_persons = torch.stack(img_persons, 0)
+            # PASS THE IMAGES INSIDE THE EXTERNAL NETWORK
+            feat_pers = self.model_REID(img_persons).data.cpu()
+            # COMPUTE FEATURES DISTANCES
+            dist = np.linalg.norm(feat_pers - person_avg_feat_temp, axis=1)
+
+            # RETURN REIDENTIFIED CLASS IFF THE DISTANCE BETWEEN FEATURE IS NO MORE THAN A THRESHOLD
+            if np.min(dist) > 1:
+                reidentified_class = None
+            else:
+                target_idx = np.argmin(dist)
+                reidentified_class = {"class": self.class_target,
+                                      "boxes": boxes[target_idx],
+                                      "masks": masks[target_idx]}
+                ## print features distance for debugging
+                # print(np.sort(dist))
+                # DISPLAY REIDENTIFIED IMAGE
+                if self.display_img :
+                    x1, y1, x2, y2 = boxes[target_idx]
+                    cv2.rectangle(rgb, (x1, y1), (x2, y2), (255, 255, 255), 5)
+
+                    text_str = 'TARGET'
+
+                    font_face = cv2.FONT_HERSHEY_DUPLEX
+                    font_scale = 0.6
+                    font_thickness = 1
+
+                    text_w, text_h = cv2.getTextSize(text_str, font_face, font_scale, font_thickness)[0]
+
+                    text_pt = (x1, y1 - 3)
+                    text_color = [255, 255, 255]
+
+                    cv2.rectangle(rgb, (x1, y1), (x1 + text_w, y1 - text_h - 4), (0, 0, 0), -1)
+                    cv2.putText(rgb, text_str, text_pt, font_face, font_scale, text_color, font_thickness,
+                                cv2.LINE_AA)
+
+                    cv2.namedWindow("Reidentificator", cv2.WINDOW_NORMAL)
+                    cv2.imshow("Reidentificator", rgb)
+
+                    if cv2.waitKey(1) == ord('q'):
+                        print("Closed Reidentificator Image Viewer.")
+                        exit(0)
+
+        # KeyError exception rise up if no boxes and masks are found in inference input
         except KeyError:
-            return rgb, None
+            reidentified_class = None
 
-        img_persons = []
-        ### COPY THE FEATURES TEMPLATE ACCORDINGLY TO NUMBER OF DETECTED PERSONS FOR FAST DISTANCE COMPUTATION
-        person_avg_feat_temp = np.tile(self.person_avg_feat, (len(boxes), 1))
-        ### CUT THE BOUNDING BOXES OF THE DETECTED PERSONS OVER THE IMAGE
-        for id in range(len(boxes)):
-            rgb_new = rgb.copy()
-            for i in range(3):
-                rgb_new[:, :, i] = rgb_new[:, :, i] * masks[id]
-            person_bb = self.transform(
-                torch.from_numpy(rgb_new[boxes[id][1]:boxes[id][3], boxes[id][0]:boxes[id][2], :]).unsqueeze(
-                    0).cuda().float())
-            img_persons.append(person_bb[0])
-        img_persons = [img_person.cuda().float() for img_person in img_persons]
-        img_persons = torch.stack(img_persons, 0)
-        ### PASS THE IMAGES INSIDE THE EXTERNAL NETWORK
-        feat_pers = self.model_REID(img_persons).data.cpu()
-        ### COMPUTE FEATURES DISTANCES
-        dist = np.linalg.norm(feat_pers - person_avg_feat_temp, axis=1)
-        if np.min(dist)>1:
-          return rgb, None
-        target_idx = np.argmin(dist)
-        # print(np.sort(dist))
-        # Todo: if dist è maggiore di una threshold allora non tornare nulla
-        if self.display_target:
-            x1, y1, x2, y2 = boxes[target_idx]
-            cv2.rectangle(rgb, (x1, y1), (x2, y2), (255, 255, 255), 5)
-
-            text_str = 'TARGET'
-
-            font_face = cv2.FONT_HERSHEY_DUPLEX
-            font_scale = 0.6
-            font_thickness = 1
-
-            text_w, text_h = cv2.getTextSize(text_str, font_face, font_scale, font_thickness)[0]
-
-            text_pt = (x1, y1 - 3)
-            text_color = [255, 255, 255]
-
-            cv2.rectangle(rgb, (x1, y1), (x1 + text_w, y1 - text_h - 4), (0, 0, 0), -1)
-            cv2.putText(rgb, text_str, text_pt, font_face, font_scale, text_color, font_thickness,
-                        cv2.LINE_AA)
-
-        reidentified_class = {"class": self.class_target, "boxes": boxes[target_idx], "masks": masks[target_idx]}
-
-        return rgb, reidentified_class
+        return reidentified_class

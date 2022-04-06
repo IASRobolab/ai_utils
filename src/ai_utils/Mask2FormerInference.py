@@ -110,7 +110,7 @@ class VisualizationDemo(object):
                 )
 
         # returns only prediction  if you don't want to display the formatted image
-        if  display_img:
+        if display_img:
             # Convert image from OpenCV BGR format to Matplotlib RGB format.
             image = image[:, :, ::-1]
             visualizer = Visualizer(image, self.metadata, instance_mode=self.instance_mode)
@@ -144,4 +144,12 @@ class Mask2FormerInference:
 
         visualized_output, inference_out = self.demo.run_on_image(img, self.display_img, classes)
 
-        return visualized_output, inference_out
+        if self.display_img:
+            cv2.namedWindow("Mask2Former", cv2.WINDOW_NORMAL)
+            cv2.imshow("Mask2Former", visualized_output)
+
+            if cv2.waitKey(1) == ord('q'):
+                print("Closed Mask2Former Image Viewer.")
+                exit(0)
+
+        return inference_out
