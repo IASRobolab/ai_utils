@@ -20,8 +20,7 @@ class HandPoseInference:
         '''
         This function returns a list cointaining hand world points (with coordinate frame centered in the hand center)
         :param img: the image on which to search for hands
-        :return: the image with hands points on it if self.diplay = true or the original image otherwise AND
-        a dictionary with at most two keys (left and right) containing a vstisble length list of hands
+        :return: a dictionary with at most two keys (left and right) containing a variable length (1 or 2) list of hands
         depending on detection and max_num_hands param used in initialization
         '''
         if self.flip_image:

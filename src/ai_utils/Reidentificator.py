@@ -116,8 +116,7 @@ class Reidentificator:
         :param rgb: the image in which there should be the object to reidentify
         :param inference_output: a dictionary containing the inferences obtained by an instance segmentation algorithm
         (e.g., Yolact++)
-        :return: the image with a bounding box (depending on self.display_target) and the mask of the targeted object
-        reidentified
+        :return: the mask of the targeted object if reidentified
         '''
         rgb = rgb.copy()
         if not self.calibrated:
