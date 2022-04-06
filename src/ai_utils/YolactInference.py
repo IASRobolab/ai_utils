@@ -105,15 +105,15 @@ class YolactInference:
             self.net.detect.use_cross_class_nms = self.args.cross_class_nms
             cfg.mask_proto_debug = self.args.mask_proto_debug
 
-    def prep_display(self, dets_out, img, class_color=True, fps_str=''):
+    def output_formatting_and_display(self, dets_out, img, class_color=True, fps_str=''):
         '''
-        Function which create the image with the results and perform the detection
+        This function displays the image with the inference results if self.display_img=True and
+        format the network inference
         :param dets_out: the inference output of the network
         :param img: the original image
         :param class_color: boolean used to format the same class objects with the same color
         :param fps_str: mica lo so che vor dì
-        :return: the image formatted with the results (if self.display is True) and the reformatted inference outputs
-        [classes, scores, boxes, masks_out]
+        :return:the reformatted inference outputs as a list [classes, scores, boxes, masks_out]
         '''
 
         mask_alpha = 0.5
@@ -136,6 +136,12 @@ class YolactInference:
             classes, scores, boxes = [x[idx].cpu().numpy() for x in t[:3]]
             masks = t[3][idx]
             masks_out = masks.detach().clone().cpu().numpy()
+
+            # if no classes have been found return None Inference
+            if classes.shape[0] == 0:
+                inference = None
+            else:
+                inference = [classes, scores, boxes, masks_out]
 
         if self.display_img:
 
@@ -213,9 +219,6 @@ class YolactInference:
                 cv2.putText(img_numpy, fps_str, text_pt, font_face, font_scale, text_color, font_thickness,
                             cv2.LINE_AA)
 
-            if num_dets_to_consider == 0:
-                return img_numpy, None
-
             if self.args.display_text or self.args.display_bboxes:
                 for j in reversed(range(num_dets_to_consider)):
                     x1, y1, x2, y2 = boxes[j, :]
@@ -250,7 +253,7 @@ class YolactInference:
                 print("Closed Yolact Image Viewer.")
                 exit(0)
 
-        return [classes, scores, boxes, masks_out]
+        return inference
 
     def img_inference(self, rgb, classes=None):
         '''
@@ -268,7 +271,7 @@ class YolactInference:
         preds = self.net(batch)
         
         with torch.no_grad():
-            inference = self.prep_display(preds, frame)
+            inference = self.output_formatting_and_display(preds, frame)
 
         inference_out = {}
         if inference is not None:
