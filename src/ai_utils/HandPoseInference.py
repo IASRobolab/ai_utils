@@ -4,11 +4,11 @@ import cv2
 
 class HandPoseInference:
 
-    def __init__(self, display=False, static_image_mode=False, model_complexity=1, max_num_hands=2,
+    def __init__(self, display_img=False, static_image_mode=False, model_complexity=1, max_num_hands=2,
                  min_detection_confidence=0.3, min_tracking_confidence=0.3, flip_image=True, flatten=True):
 
         self.flip_image = flip_image
-        self.display = display
+        self.display_img = display_img
         self.flatten = flatten
 
         mp_hands = mp.solutions.hands
@@ -39,7 +39,7 @@ class HandPoseInference:
         if not results.multi_hand_landmarks:
             hands_detected = None
         else:
-            if self.display:
+            if self.display_img:
                 if self.flip_image:
                     img = cv2.flip(img, 1)
                 image_height, image_width, _ = img.shape
