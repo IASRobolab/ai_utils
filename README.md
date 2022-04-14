@@ -1,12 +1,15 @@
 # ai_utils
-This package is aimed to contain different wrappers for the AI algorithms used in the labs
+This package is aimed to contain different wrappers for the AI algorithms used in the labs to speed up development and 
+improve research quality.
 
 ## Algorithms
-- **Detectors**
-  - Yolact++ 
-  - Mask2Former
-- **Classifiers**
+- **Image segmentation**
+  - Yolact++ (Instance segmentation)
+  - Mask2Former (Panoptic segmentation)
+- **Classification**
   - MMT
+- **Pose detection** 
+  - Mediapipe (hand pose)
 
 
 ## How to
@@ -14,10 +17,12 @@ This package is aimed to contain different wrappers for the AI algorithms used i
   - [Yolact++](#yolact++-setup)
   - [Mask2Former](#mask2former-setup)
   - [MMT](#mmt-setup)
+  - [Mediapipe](#mediapipe-setup)
 - [Install](#algorithms-installation)
   - [Yolact++](#yolact++-installation)
   - [Mask2Former](#mask2former-installation)
   - [MMT](#mmt-installation)
+  - [Mediapipe](#mediapipe-installation)
 - [Find packacge directory path](#find-package-path)
 
 # Setup and Run
@@ -32,23 +37,23 @@ The weights can be downloaded both from the links in the original Yolact++ repos
 
 ### Running
 To use yolact in  your python code you need to import the YolactInference class:
-```
+``` python
     from YolactInference import YolactInference
 ```
 Then you need to create the YolactInference object instance passing some parameters, such as:
 - **model_weights**: [_string_] mandatory\
 The path of the neural network weights. In general for our ROS convention the weights should be placed in a
  ```YOUR_PKG_DIR_PATH/weights``` folder.
-- **display**: [_boolean_] default = False\
-if True the image will be formatted with the inference output on it.
+- **display_img**: [_boolean_] default = False\
+if True the classification image is displayed on screen.
 - **score_threshold**: [_double_] default = 0.5 \
 the object with a confidence threshold less than this parameter are discarded and not passed in the output.
-```
+``` python
     yolact = YolactInference(model_weights="/YOUR_WEIGHTS_PATH")
 ```
 Finally, use the img_inference() function to evaluate the image with the Neural Network.
-```
-    out_image, inference_dict = yolact.img_inference(input_image)
+``` python
+    inference_dict = yolact.img_inference(input_image)
 ```
 **inputs:**
 
@@ -58,8 +63,6 @@ the image on which to compute the inference
 This parameter is used as a filter for the classes that we want in the output inference dictionary.
 
 **outputs:**
-- _out_image_: [numpy array] \
-the image with the inference output on it (only if display = True in yolact instantiation).
 - _inference_dict_: [dict] \
 a dictionary containing the object inferences found on input image divided by class (Key).
 
@@ -75,7 +78,7 @@ Both the weights and the config files can be found on our drive in the
 
 ### Running
 To use Mask2Former in your python code you need to import the Mask2FormerInference class:
-```
+``` python
     from Mask2FormerInference import Mask2FormerInference
 ```
 Then you need to create the YolactInference object instance passing some parameters, such as:
@@ -85,15 +88,15 @@ The path of the neural network weights. In general for our ROS convention the we
 - **config_file**: [_string_] mandatory\
 The path of the config file used to load the neural network. In general for our ROS convention the weights should be placed in a
  ```YOUR_PKG_DIR_PATH/net_config``` folder.
-- **display_img**: [_boolean_] default = False\
-if True the image will be formatted with the inference output on it.
+- **display_img**: [_boolean_] default = False\          
+if True the classification image is displayed on screen. 
 
-```
+``` python
     mask2former = Mask2FormerInference(model_weights="/YOUR_WEIGHTS_PATH", config_file="/YOUR_CONFIG_PATH" )
 ```
 Finally, use the img_inference() function to evaluate the image with the Neural Network.
-```
-    out_image, inference_dictionary = mask2former.img_inference(input_image, classes_wanted)
+``` python
+    inference_dict = mask2former.img_inference(input_image, classes_wanted)
 ```
 **inputs:**
 
@@ -103,8 +106,6 @@ the image on which to compute the inference
 This parameter is used as a filter for the classes that we want in the output inference dictionary.
 
 **outputs:**
-- _out_image_: [numpy array] \
-the image with the inference output on it (only if display = True in yolact instantiation).
 - _inference_dict_: [dict] \
 a dictionary containing the object inferences found on input image divided by class (Key).
 
@@ -126,22 +127,22 @@ The path of the neural network weights. In general for our ROS convention the we
  ```YOUR_PKG_DIR_PATH/weights``` folder.
 - **class_target**: [_string_] mandatory\
 the class string of the object we want to calibrate and then reidentify
-- **display_target**: [_boolean_] default = False\
-if True the reidentificator returns an image on which the person reidentified has a white bounding box around him.
+- **display_img**: [_boolean_] default = False\          
+if True the Reidentification image is displayed on screen.
 
-```
+``` python
     mmt = Reidentificator(model_weights="/YOUR_WEIGHTS_PATH", class_target="person")
 ```
 To use the Reidentificator you need first to calibrate the instance with a calibration phase calling iteratively the 
 calibration function until it will return true.
-```
+``` python
     while(not calibrate_person(img, inference_output)):
         img = GET_NEW_IMAGE()
         inference_output = GET_INFERENCE_OF_NEW_IMAGE()
 ``` 
 Finally, use the reidentification function to evaluate the image with the Neural Network.
-```
-    rgb, mask = reidentify(img, inference_output)
+``` python
+    mask = reidentify(img, inference_output)
 ```
 
 **inputs:**
@@ -152,19 +153,70 @@ the image on which to compute the reidentification.
 The dictionary containing the output of a detector (in our case we use yolact).
 
 **outputs:**
-- _rgb_: [numpy array] \
-the image with the inference output on it (only if display_target = True in MMT instantiation).
 - _mask_: [numpy array] \
 The mask of the person reidentified.
+
+## Mediapipe setup
+
+### Setup
+You don't need to setup anything to use mediapipe hand pose detector, but if you want to classify some gesture you need
+to use an classifier (e.g., an SVM classifier) and in this case you should follow the next step.
+To use an SVM hand gesture classifier in your code, you need first to move the weights file in a folder called
+```weights``` in your package directory, i.e., ```YOUR_PKG_DIR_PATH/weights/YOUR_WEIGHTS```. \
+The weights can be found on our drive in the ```computer_vision_models/classifiers/mediapipe_hand``` folder.
+
+### Running
+To use Mediapipe in your python code you need to import the HandPoseInference class:
+``` python
+    from ai_utils.HandPoseInference import HandPoseInference
+```
+Then you need to create the mediapipe HandPoseInference object instance passing some parameters, such as:
+- **display_img**: [_boolean_] default = False\
+When ```True``` print the detected hand points in an image.
+- **static_image_mode**: [_boolean_] default = False\
+Set ```True``` if you want to use static images otherwise set ```False``` for dynamic ones (moving images)
+- **model_complexity**: [_int_] default = 1\
+If 0 uses a simpler and faster model. Is 1 uses a more complex and slow but more precise model (speed is almost 
+irrelevant on computers).
+- **max_num_hands**: [_int_] default = 2\
+Number of max detected hands on image.
+- **min_detection_confidence**: [_double_] default = 0.3\
+Score threshold used to filter out classification with low confidence.
+- **min_tracking_confidence**: [_boolean_] default = 0.3\
+Same as above but for hand tracking (it is related to hand movements in consecutive images).
+- **flip_image**: [_boolean_] default = True\
+If True flip images with respect to Y axis. It is used to obtain correct Handedness values because if the input image is
+flipped the algorith confuses right and left hands.
+- **flatten**: [_boolean_] default = True\
+If True the classification output is flattened in a single list composed by 63 values, otherwise a list of 3D points
+is returned (size: 21*3)
+
+``` python
+    hand_pose = HandPoseInference(display_img=True)
+```
+To use the mediapipe hand detection use the get_hand_pose function to evaluate the image with the Neural Network..
+``` python
+    hand_results = hand_pose.get_hand_pose(input_img)
+```
+
+**inputs:**
+
+- _img_: [numpy array] mandatory\
+the image on which to compute the hands detection.
+
+**outputs:**
+- _hands_detected_: [dict] \
+A dictionary containing the hands detected on the image. The dict can have only two keys: left and right depending on 
+the detected hands handedness. Each key has a list of hands with a format which depends on the instance initialization
+parameters
 
 # Algorithms installation
 If you want to setup the following algorithm in your local pip you can run the following commands in your bash depending
 on what you need to install. \
 Be sure that your python build command is upgraded:
-```
+``` commandline
   pip install --upgrade build
 ```
-
 
 ## Yolact++ installation
 First of all, clone the custom yolact++ repository, which contains the setup.py file, in a chosen directory (this should
@@ -173,7 +225,7 @@ is needed to run Yolact++.
 
 To install Yolact++ on your pip environment, activate your environment (or install directly on system if you prefer)
 and run:
-```
+``` commandline
   cd YOUR_YOLACT_PATH/yolact
   python setup.py build develop
 ```
@@ -184,21 +236,21 @@ Moreover, to use Yolact++ you need to install DCNv2. There exists two versions o
 - DCNv2_latest is used for NEWER GPU architectures (compatible with latest pytorch version)
 
 To install it, substitute YOUR_DCNv2_FOLDER with DCNv2 or DCNv2_latest in the following:
-```
+``` commandline
   cd YOUR_YOLACT_PATH/yolact/external/YOUR_DCNv2_FOLDER
   python setup.py build develop
 ```
 
 
 ## Mask2Former installation
-First of all, clone the custom Mask2Former repository, which contains the setup.py file, in a chosen directory 
+First, clone the custom Mask2Former repository, which contains the setup.py file, in a chosen directory 
 (this should not change after installation). This repository has been slightly modified by the Robolab Leonardo fellows.
 
 To install Mask2Former on your pip environment, activate your environment (or install directly on system if you prefer).
 You need to clone also the detectron2 repository slightly modified by the Robolab Leonardo fellows for Mask2Former.
 
 To setup your environment, run:
-```
+```  commandline
   # Detectron2 installation (you need to clone the Robolab repository first)
   cd YOUR_DETECTRON2_PATH/detectron2
   pip install -e .
@@ -220,19 +272,27 @@ First of all, clone the custom MMT repository, which contains the setup.py file,
 change after installation). This repository has been slightly modified by the Robolab Leonardo fellows.
 
 To install MMT on your pip environment, activate your environment (or install directly on system if you prefer) and run:
-```commandline
+``` commandline
   cd YOUR_MMT_PATH/MMT
   python setup.py install
 ```
 
+## Mediapipe installation
+
+To install Mediapipe on your pip environment, activate your environment (or install directly on system if you prefer) and run:
+``` commandline
+  pip install mediapipe
+```
+Google has done a good job; the installation is really simple, isn't it?.
+
 # Find package path
-If you are using a standard Cmake package configuration you should save your network weights or config files directly 
+If you are using a standard Cmake package configuration you should save your network weights or config files 
 inside your package under a custom directory ```e.g., YOUR_PACKAGE_PATH/weights/YOUR_WEIGHT)```. \
 You'll probably need your package path in your code to use the AI algorithms (e.g., to load neural network weights).
 If the files are saved as has been declared above you can use the following command to retrieve the package path 
-```python
-import os
-pkg_dir_name = '/' + os.path.join(*os.path.abspath(__file__).split('/')[:-2])
+``` python
+    import os
+    pkg_dir_name = '/' + os.path.join(*os.path.abspath(__file__).split('/')[:-2])
 ```
 
 
