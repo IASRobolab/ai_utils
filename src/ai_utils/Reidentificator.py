@@ -6,6 +6,8 @@ import sys
 from mmt import models
 from mmt.utils.serialization import load_checkpoint, copy_state_dict
 
+import pdb
+
 
 class FastBaseTransform(torch.nn.Module):
     """
@@ -52,7 +54,9 @@ class Reidentificator:
 
         self.transform = torch.nn.DataParallel(FastBaseTransform()).cuda()
         print('Loading REID model...', end='')
-        self.model_REID = models.create('resnet_ibn50a', pretrained=False, num_features=0, dropout=0, num_classes=0, norm=True)
+        self.model_REID = models.create('resnet_ibn50a', pretrained=False,
+                                        num_features=256, dropout=0,
+                                        num_classes=0, norm=True)
         self.model_REID.cuda()
         self.model_REID = torch.nn.DataParallel(self.model_REID)
         try:
@@ -65,11 +69,12 @@ class Reidentificator:
         self.model_REID.eval()
         print('Done.')
 
-        self.seq_n = 0
-        self.meas_init = 100
+        self.iteration_number = 0
+        self.required_calibration_measures = 200
         self.calibrated = False
 
-        self.person_avg_feat = 0  # template feature
+        # self.person_avg_feat = 0 # NO MORE USED # template feature
+        self.feats = []
 
     def calibrate_person(self, rgb, inference_output):
         '''
@@ -88,25 +93,31 @@ class Reidentificator:
 
         if len(boxes) > 1:
             print('WARNING: MORE THAN ONE PERSON DETECTED DURING CALIBRATION!')
-            self.person_avg_feat = 0
-            self.seq_n = 0
+            # self.person_avg_feat = 0  # NO MORE USED
+            self.iteration_number = 0
+            self.feats = []
         else:
             for i in range(3):
-                    rgb[:,:,i] = rgb[:,:,i] * masks[0]
-            percentage = int(self.seq_n / self.meas_init * 100)
+                rgb[:, :, i] = rgb[:, :, i] * masks[0]
+            percentage = self.iteration_number / self.required_calibration_measures * 100
             if percentage % 10 == 0:
-                print("CALIBRATING ", percentage, "%")
+                print("CALIBRATING ", int(percentage), "%")
             img_person = self.transform(
                 torch.from_numpy(rgb[boxes[0][1]:boxes[0][3], boxes[0][0]:boxes[0][2], :]).unsqueeze(0).cuda().float())
-            self.seq_n += 1
-            self.person_avg_feat += self.model_REID(img_person.cuda()).data.cpu()
+            self.iteration_number += 1
+            # self.person_avg_feat += self.model_REID(img_person.cuda()).data.cpu()
+            self.feats.append(self.model_REID(img_person.cuda()).data.cpu()[0].numpy())
 
             # after meas_init measures we terminate the initialization
-            if self.seq_n > self.meas_init:
+            if self.iteration_number > self.required_calibration_measures:
                 print('\nCALIBRATION FINISHED')
                 self.calibrated = True
-                self.person_avg_feat = self.person_avg_feat / np.linalg.norm(self.person_avg_feat)
-                self.seq_n = 0
+                # self.person_avg_feat = self.person_avg_feat / np.linalg.norm(self.person_avg_feat)
+                self.mean_pers = np.mean(np.array(self.feats), axis=0)
+                self.std_pers = np.std(np.array(self.feats), axis=0)
+                self.iteration_number = 0
+                self.mahalanobis_deviation_const = np.sqrt(self.mean_pers.shape[0])
+                self.feature_threshold = 1.8  # TODO: calibrate threshold with maximum detected value in calibration?
 
         return self.calibrated
 
@@ -128,7 +139,9 @@ class Reidentificator:
 
             img_persons = []
             # COPY THE FEATURES TEMPLATE ACCORDINGLY TO NUMBER OF DETECTED PERSONS FOR FAST DISTANCE COMPUTATION
-            person_avg_feat_temp = np.tile(self.person_avg_feat, (len(boxes), 1))
+            # person_avg_feat_temp = np.tile(self.person_avg_feat, (len(boxes), 1))
+            person_mean_feat = np.tile(self.mean_pers, (len(boxes), 1))
+            person_std_feat = np.tile(self.std_pers, (len(boxes), 1))
             # CUT THE BOUNDING BOXES OF THE DETECTED PERSONS OVER THE IMAGE
             for id in range(len(boxes)):
                 rgb_new = rgb.copy()
@@ -143,10 +156,13 @@ class Reidentificator:
             # PASS THE IMAGES INSIDE THE EXTERNAL NETWORK
             feat_pers = self.model_REID(img_persons).data.cpu()
             # COMPUTE FEATURES DISTANCES
-            dist = np.linalg.norm(feat_pers - person_avg_feat_temp, axis=1)
-
+            # dist = np.linalg.norm(feat_pers - person_avg_feat_temp, axis=1)
+            # pdb.set_trace()
+            dist = np.linalg.norm((feat_pers - person_mean_feat) / (self.mahalanobis_deviation_const * person_std_feat),
+                                  axis=1)
+            # print(dist)
             # RETURN REIDENTIFIED CLASS IFF THE DISTANCE BETWEEN FEATURE IS NO MORE THAN A THRESHOLD
-            if np.min(dist) > 1:
+            if np.min(dist) > self.feature_threshold:
                 reidentified_class = None
             else:
                 target_idx = np.argmin(dist)
@@ -156,7 +172,7 @@ class Reidentificator:
                 ## print features distance for debugging
                 # print(np.sort(dist))
                 # DISPLAY REIDENTIFIED IMAGE
-                if self.display_img :
+                if self.display_img:
                     x1, y1, x2, y2 = boxes[target_idx]
                     cv2.rectangle(rgb, (x1, y1), (x2, y2), (255, 255, 255), 5)
 
