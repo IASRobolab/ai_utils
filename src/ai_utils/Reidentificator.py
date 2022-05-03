@@ -244,9 +244,6 @@ class Reidentificator:
             # PASS THE IMAGES INSIDE THE EXTERNAL NETWORK
             feat_pers = self.model_REID(img_persons).data.cpu()
             # COMPUTE FEATURES DISTANCES
-            # dist = np.linalg.norm(feat_pers - person_avg_feat_temp, axis=1)
-            # pdb.set_trace()
-            # dist = np.linalg.norm(feat_pers - self.mean_pers, axis=1)
             dist = np.linalg.norm((feat_pers - self.mean_pers) / (self.mahalanobis_deviation_const * self.std_pers),
                                   axis=1)
             # print(dist)
