@@ -249,9 +249,9 @@ class Reidentificator:
             # dist = np.linalg.norm(feat_pers - self.mean_pers, axis=1)
             dist = np.linalg.norm((feat_pers - self.mean_pers) / (self.mahalanobis_deviation_const * self.std_pers),
                                   axis=1)
-            print(dist)
+            # print(dist)
             # RETURN REIDENTIFIED CLASS IFF THE DISTANCE BETWEEN FEATURE IS NO MORE THAN A THRESHOLD
-            if np.min(dist) > self.feature_threshold:
+            if dist > self.feature_threshold:
                 reidentified_class = False
             else:
                 reidentified_class = True
