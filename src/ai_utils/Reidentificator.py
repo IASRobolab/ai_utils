@@ -70,11 +70,12 @@ class Reidentificator:
         print('Done.')
 
         self.iteration_number = 0
-        self.required_calibration_measures = 200
+        self.required_calibration_measures = 300
         self.calibrated = False
-
+        self.calibration_finished = False
 
         self.feats = []
+        self.feats_distances = []
 
     def calibrate_person(self, rgb, inference_output):
         '''
@@ -207,25 +208,44 @@ class Reidentificator:
         (e.g., Yolact++)
         :return: A boolean which confirm if the object has been correctly calibrated or not
         '''
-        percentage = self.iteration_number / self.required_calibration_measures * 100
-        if percentage % 10 == 0:
-            print("CALIBRATING ", int(percentage), "%")
-        img_person = self.transform(torch.from_numpy(rgb).unsqueeze(0).cuda().float())
-        self.iteration_number += 1
-        self.feats.append(self.model_REID(img_person.cuda()).data.cpu()[0].numpy())
 
-
-        # after meas_init measures we terminate the initialization
         if self.iteration_number >= self.required_calibration_measures:
-            print('\nCALIBRATION FINISHED')
-            self.calibrated = True
-            self.mean_pers = np.mean(np.array(self.feats), axis=0)
-            self.std_pers = np.std(np.array(self.feats), axis=0)
-            self.iteration_number = 0
-            self.mahalanobis_deviation_const = np.sqrt(self.mean_pers.shape[0])
-            self.feature_threshold = 1.7  # TODO: calibrate threshold with maximum detected value in calibration?
+            if not self.calibrated:
+                self.mean_pers = np.mean(np.array(self.feats), axis=0)
+                self.std_pers = np.std(np.array(self.feats), axis=0)
+                self.mahalanobis_deviation_const = np.sqrt(self.mean_pers.shape[0])
+                self.calibrated = True
+                print('\nCALIBRATION FINISHED\n')
 
-        return self.calibrated
+            if self.iteration_number - self.required_calibration_measures < 100:
+                percentage = self.iteration_number - self.required_calibration_measures / 100 * 100
+                if percentage % 10 == 0:
+                    print("Threshold Computation ", int(percentage), "%")
+                img_person = self.transform(torch.from_numpy(rgb).unsqueeze(0).cuda().float())
+                self.iteration_number += 1
+                # feat_pers = self.model_REID(img_person.cuda()).data.cpu()[0].numpy()
+                feat_pers = self.model_REID(img_person).data.cpu()
+                # pdb.set_trace()
+                dist = np.linalg.norm((feat_pers - self.mean_pers) / (self.mahalanobis_deviation_const * self.std_pers),
+                                      axis=1)
+
+                self.feats_distances.append(dist)
+            else:
+                # TODO: calibrate threshold with maximum detected value in calibration? use gaussian to extract a good value?
+                self.feature_threshold = np.max(self.feats_distances)
+                print("THRESHOLDEEEEEEEEEEEEEEEEEEEE")
+                print(self.feature_threshold)
+                self.calibration_finished = True
+
+        else:  # CALIBRATION
+            percentage = self.iteration_number / self.required_calibration_measures * 100
+            if percentage % 10 == 0:
+                print("CALIBRATING ", int(percentage), "%")
+            img_person = self.transform(torch.from_numpy(rgb).unsqueeze(0).cuda().float())
+            self.iteration_number += 1
+            self.feats.append(self.model_REID(img_person.cuda()).data.cpu()[0].numpy())
+
+        return self.calibration_finished
 
     def reidentify_statistics(self, rgb):
         '''
