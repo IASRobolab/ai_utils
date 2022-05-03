@@ -73,7 +73,7 @@ class Reidentificator:
         self.required_calibration_measures = 200
         self.calibrated = False
 
-        # self.person_avg_feat = 0 # NO MORE USED # template feature
+
         self.feats = []
 
     def calibrate_person(self, rgb, inference_output):
@@ -93,7 +93,6 @@ class Reidentificator:
 
         if len(boxes) > 1:
             print('WARNING: MORE THAN ONE PERSON DETECTED DURING CALIBRATION!')
-            # self.person_avg_feat = 0  # NO MORE USED
             self.iteration_number = 0
             self.feats = []
         else:
@@ -105,14 +104,12 @@ class Reidentificator:
             img_person = self.transform(
                 torch.from_numpy(rgb[boxes[0][1]:boxes[0][3], boxes[0][0]:boxes[0][2], :]).unsqueeze(0).cuda().float())
             self.iteration_number += 1
-            # self.person_avg_feat += self.model_REID(img_person.cuda()).data.cpu()
             self.feats.append(self.model_REID(img_person.cuda()).data.cpu()[0].numpy())
 
             # after meas_init measures we terminate the initialization
             if self.iteration_number > self.required_calibration_measures:
                 print('\nCALIBRATION FINISHED')
                 self.calibrated = True
-                # self.person_avg_feat = self.person_avg_feat / np.linalg.norm(self.person_avg_feat)
                 self.mean_pers = np.mean(np.array(self.feats), axis=0)
                 self.std_pers = np.std(np.array(self.feats), axis=0)
                 self.iteration_number = 0
@@ -139,7 +136,6 @@ class Reidentificator:
 
             img_persons = []
             # COPY THE FEATURES TEMPLATE ACCORDINGLY TO NUMBER OF DETECTED PERSONS FOR FAST DISTANCE COMPUTATION
-            # person_avg_feat_temp = np.tile(self.person_avg_feat, (len(boxes), 1))
             person_mean_feat = np.tile(self.mean_pers, (len(boxes), 1))
             person_std_feat = np.tile(self.std_pers, (len(boxes), 1))
             # CUT THE BOUNDING BOXES OF THE DETECTED PERSONS OVER THE IMAGE
@@ -156,8 +152,6 @@ class Reidentificator:
             # PASS THE IMAGES INSIDE THE EXTERNAL NETWORK
             feat_pers = self.model_REID(img_persons).data.cpu()
             # COMPUTE FEATURES DISTANCES
-            # dist = np.linalg.norm(feat_pers - person_avg_feat_temp, axis=1)
-            # pdb.set_trace()
             dist = np.linalg.norm((feat_pers - person_mean_feat) / (self.mahalanobis_deviation_const * person_std_feat),
                                   axis=1)
             # print(dist)
@@ -169,8 +163,7 @@ class Reidentificator:
                 reidentified_class = {"class": self.class_target,
                                       "boxes": boxes[target_idx],
                                       "masks": masks[target_idx]}
-                ## print features distance for debugging
-                # print(np.sort(dist))
+
                 # DISPLAY REIDENTIFIED IMAGE
                 if self.display_img:
                     x1, y1, x2, y2 = boxes[target_idx]
@@ -203,3 +196,70 @@ class Reidentificator:
             reidentified_class = None
 
         return reidentified_class
+
+    ### ONLY USED FOR STATISTICS
+    def calibrate_person_statistics(self, rgb):
+        '''
+        Function used to calibrate the reidentificator with the object image. This function should be called iteratively
+        until it returns True (i.e., when the object is calibrated)
+        :param rgb: the image in which there is the object
+        :param inference_output: a dictionary containing the inferences obtained by an instance segmentation algorithm
+        (e.g., Yolact++)
+        :return: A boolean which confirm if the object has been correctly calibrated or not
+        '''
+        percentage = self.iteration_number / self.required_calibration_measures * 100
+        if percentage % 10 == 0:
+            print("CALIBRATING ", int(percentage), "%")
+        img_person = self.transform(torch.from_numpy(rgb).unsqueeze(0).cuda().float())
+        self.iteration_number += 1
+        self.feats.append(self.model_REID(img_person.cuda()).data.cpu()[0].numpy())
+
+
+        # after meas_init measures we terminate the initialization
+        if self.iteration_number >= self.required_calibration_measures:
+            print('\nCALIBRATION FINISHED')
+            self.calibrated = True
+            self.mean_pers = np.mean(np.array(self.feats), axis=0)
+            self.std_pers = np.std(np.array(self.feats), axis=0)
+            self.iteration_number = 0
+            self.mahalanobis_deviation_const = np.sqrt(self.mean_pers.shape[0])
+            self.feature_threshold = 1.7  # TODO: calibrate threshold with maximum detected value in calibration?
+
+        return self.calibrated
+
+    def reidentify_statistics(self, rgb):
+        '''
+        Used to reidentify the calibrated object on the image (if present)
+        :param rgb: the image in which there should be the object to reidentify
+        :param inference_output: a dictionary containing the inferences obtained by an instance segmentation algorithm
+        (e.g., Yolact++)
+        :return: the mask of the targeted object if reidentified
+        '''
+        rgb = rgb.copy()
+        if not self.calibrated:
+            sys.exit("Error: Reidentificator not calibrated!")
+
+        try:
+            img_persons = self.transform(torch.from_numpy(rgb).unsqueeze(0).cuda().float())
+            # PASS THE IMAGES INSIDE THE EXTERNAL NETWORK
+            feat_pers = self.model_REID(img_persons).data.cpu()
+            # COMPUTE FEATURES DISTANCES
+            # dist = np.linalg.norm(feat_pers - person_avg_feat_temp, axis=1)
+            # pdb.set_trace()
+            # dist = np.linalg.norm(feat_pers - self.mean_pers, axis=1)
+            dist = np.linalg.norm((feat_pers - self.mean_pers) / (self.mahalanobis_deviation_const * self.std_pers),
+                                  axis=1)
+            print(dist)
+            # RETURN REIDENTIFIED CLASS IFF THE DISTANCE BETWEEN FEATURE IS NO MORE THAN A THRESHOLD
+            if np.min(dist) > self.feature_threshold:
+                reidentified_class = False
+            else:
+                reidentified_class = True
+
+        # KeyError exception rise up if no boxes and masks are found in inference input
+        except KeyError:
+            reidentified_class = False
+
+        return reidentified_class
+
+
