@@ -5,6 +5,7 @@ from torch.nn import functional as F
 import sys
 from mmt import models
 from mmt.utils.serialization import load_checkpoint, copy_state_dict
+import matplotlib.pyplot as plt
 
 import pdb
 
@@ -220,7 +221,7 @@ class Reidentificator:
             if self.iteration_number - self.required_calibration_measures < 100:
                 percentage = self.iteration_number - self.required_calibration_measures / 100 * 100
                 if percentage % 10 == 0:
-                    print("Threshold Computation ", int(percentage), "%")
+                    print("THRESHOLD COMPUTATION ", int(percentage), "%")
                 img_person = self.transform(torch.from_numpy(rgb).unsqueeze(0).cuda().float())
                 self.iteration_number += 1
                 # feat_pers = self.model_REID(img_person.cuda()).data.cpu()[0].numpy()
@@ -231,10 +232,17 @@ class Reidentificator:
 
                 self.feats_distances.append(dist)
             else:
-                # TODO: calibrate threshold with maximum detected value in calibration? use gaussian to extract a good value?
-                self.feature_threshold = np.max(self.feats_distances)
-                print("THRESHOLDEEEEEEEEEEEEEEEEEEEE")
-                print(self.feature_threshold)
+                # plt.plot(np.arange(len(self.feats_distances)), np.array(self.feats_distances))
+                # plt.plot(np.ones(len(self.feats_distances)) * np.mean(np.array(self.feats_distances)))
+                # plt.plot(np.ones(len(self.feats_distances)) * (np.mean(np.array(self.feats_distances)) +
+                #                                                2.2 * np.std(np.array(self.feats_distances))))
+                # plt.legend(["Thresholds", "Mean", "2.2 std"])
+                # plt.grid(True)
+                # plt.show()
+
+                self.feature_threshold = np.mean(np.array(self.feats_distances)) + \
+                                         2.2 * np.std(np.array(self.feats_distances))
+                print("\nTHRESHOLD: %.4f" % self.feature_threshold)
                 self.calibration_finished = True
 
         else:  # CALIBRATION
