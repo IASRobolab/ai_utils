@@ -6,6 +6,7 @@ import sys
 from mmt import models
 from mmt.utils.serialization import load_checkpoint, copy_state_dict
 import matplotlib.pyplot as plt
+from sklearn.utils import shuffle
 
 import pdb
 
@@ -72,6 +73,7 @@ class Reidentificator:
 
         self.iteration_number = 0
         self.required_calibration_measures = 300
+        self.std_dev_confidence = 2.2
         self.calibrated = False
         self.calibration_finished = False
 
@@ -114,14 +116,33 @@ class Reidentificator:
             self.feats.append(self.model_REID(img_person.cuda()).data.cpu()[0].numpy())
 
             # after meas_init measures we terminate the initialization
-            if self.iteration_number > self.required_calibration_measures:
+            if self.iteration_number >= self.required_calibration_measures:
                 print('\nCALIBRATION FINISHED')
+
                 self.calibrated = True
-                self.mean_pers = np.mean(np.array(self.feats), axis=0)
-                self.std_pers = np.std(np.array(self.feats), axis=0)
-                self.iteration_number = 0
+                # shuffle features
+                self.feats = shuffle(self.feats)
+                calibration_threshold_slice = int(len(self.feats)*2/3)
+                # compute mean, std and mahalanobis
+                feat_calibrate = self.feats[:calibration_threshold_slice]
+                self.mean_pers = np.mean(np.array(feat_calibrate), axis=0)
+                self.std_pers = np.std(np.array(feat_calibrate), axis=0)
                 self.mahalanobis_deviation_const = np.sqrt(self.mean_pers.shape[0])
-                self.feature_threshold = 1.8  # TODO: calibrate threshold with maximum detected value in calibration?
+                # compute threshold
+                feat_threshold = self.feats[calibration_threshold_slice:]
+                person_mean_feat = np.tile(self.mean_pers, (len(feat_threshold), 1))
+                person_std_feat = np.tile(self.std_pers, (len(feat_threshold), 1))
+                dist_threshold = np.linalg.norm((feat_threshold - person_mean_feat) / (self.mahalanobis_deviation_const * person_std_feat), axis=1)
+
+                # plt.plot(np.arange(len(dist_threshold)), np.array(dist_threshold))
+                # plt.plot(np.ones(len(dist_threshold)) * np.mean(np.array(dist_threshold)))
+                # plt.plot(np.ones(len(dist_threshold)) * (np.mean(np.array(dist_threshold)) + self.std_dev_confidence * np.std(np.array(dist_threshold))))
+                # plt.legend(["Thresholds", "Mean", "2.2 std"])
+                # plt.grid(True)
+                # plt.show()
+
+                self.feature_threshold = np.mean(np.array(dist_threshold)) + self.std_dev_confidence * np.std(np.array(dist_threshold))
+                print("\nTHRESHOLD: %.4f" % self.feature_threshold)
 
         return self.calibrated
 
@@ -247,7 +268,7 @@ class Reidentificator:
                 # plt.show()
 
                 self.feature_threshold = np.mean(np.array(self.feats_distances)) + \
-                                         2.2 * np.std(np.array(self.feats_distances))
+                                         self.std_dev_confidence * np.std(np.array(self.feats_distances))
                 print("\nTHRESHOLD: %.4f" % self.feature_threshold)
                 self.calibration_finished = True
 
