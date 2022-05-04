@@ -78,6 +78,11 @@ class Reidentificator:
         self.feats = []
         self.feats_distances = []
 
+        self.feature_threshold = float
+        self.mahalanobis_deviation_const = float
+        self.std_pers = float
+        self.mean_pers = float
+
     def calibrate_person(self, rgb, inference_output):
         '''
         Function used to calibrate the reidentificator with the object image. This function should be called iteratively
@@ -157,7 +162,7 @@ class Reidentificator:
             dist = np.linalg.norm((feat_pers - person_mean_feat) / (self.mahalanobis_deviation_const * person_std_feat),
                                   axis=1)
             # print(dist)
-            # RETURN REIDENTIFIED CLASS IFF THE DISTANCE BETWEEN FEATURE IS NO MORE THAN A THRESHOLD
+            # RETURN REIDENTIFIED CLASS IFF THE DISTANCE BETWEEN FEATURE IS NO MORE THAN A CALIBRATED THRESHOLD
             if np.min(dist) > self.feature_threshold:
                 reidentified_class = None
             else:
@@ -212,6 +217,7 @@ class Reidentificator:
 
         if self.iteration_number >= self.required_calibration_measures:
             if not self.calibrated:
+
                 self.mean_pers = np.mean(np.array(self.feats), axis=0)
                 self.std_pers = np.std(np.array(self.feats), axis=0)
                 self.mahalanobis_deviation_const = np.sqrt(self.mean_pers.shape[0])
