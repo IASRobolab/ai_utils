@@ -294,23 +294,19 @@ class Reidentificator:
         if not self.calibrated:
             sys.exit("Error: Reidentificator not calibrated!")
 
-        try:
-            img_persons = self.transform(torch.from_numpy(rgb).unsqueeze(0).cuda().float())
-            # PASS THE IMAGES INSIDE THE EXTERNAL NETWORK
-            feat_pers = self.model_REID(img_persons).data.cpu()
-            # COMPUTE FEATURES DISTANCES
-            dist = np.linalg.norm((feat_pers - self.mean_pers) / (self.mahalanobis_deviation_const * self.std_pers),
-                                  axis=1)
-            # print(dist)
-            # RETURN REIDENTIFIED CLASS IFF THE DISTANCE BETWEEN FEATURE IS NO MORE THAN A THRESHOLD
-            if dist > self.feature_threshold:
-                reidentified_class = False
-            else:
-                reidentified_class = True
-
-        # KeyError exception rise up if no boxes and masks are found in inference input
-        except KeyError:
+        img_persons = self.transform(torch.from_numpy(rgb).unsqueeze(0).cuda().float())
+        # PASS THE IMAGES INSIDE THE EXTERNAL NETWORK
+        feat_pers = self.model_REID(img_persons).data.cpu()
+        # COMPUTE FEATURES DISTANCES
+        dist = np.linalg.norm((feat_pers - self.mean_pers) / (self.mahalanobis_deviation_const * self.std_pers),
+                              axis=1)
+        # print(dist)
+        # RETURN REIDENTIFIED CLASS IFF THE DISTANCE BETWEEN FEATURE IS NO MORE THAN A THRESHOLD
+        if dist > self.feature_threshold:
             reidentified_class = False
+        else:
+            reidentified_class = True
+
 
         return reidentified_class
 
