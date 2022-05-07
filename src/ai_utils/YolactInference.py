@@ -25,8 +25,8 @@ def str2bool(v):
 
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description='YOLACT COCO Evaluation')
-    parser.add_argument('--top_k', default=15, type=int,
-                        help='Further restrict the number of predictions to parse')
+    # parser.add_argument('--top_k', default=15, type=int,
+    #                     help='Further restrict the number of predictions to parse')
     parser.add_argument('--cuda', default=True, type=str2bool,
                         help='Use cuda to evaulate model')
     parser.add_argument('--fast_nms', default=True, type=str2bool,
@@ -62,7 +62,7 @@ color_cache = defaultdict(lambda: {})
 
 class YolactInference:
 
-    def __init__(self, model_weights, display_img=False, score_threshold=0.5, argv=None):
+    def __init__(self, model_weights, display_img=False, score_threshold=0.5, top_k=15, argv=None):
         '''
         Yolact detector used to classify, detect and segment objects on an image
         :param display_img: boolean used to return the results plotted on image
@@ -70,9 +70,11 @@ class YolactInference:
         threshold
         :param model_weights: the name of the model parameters used for the detection (they should be palced in
         the directory ~/weights)
+        :param top_k: maximum value of returned object on a single image
         :param argv: additional parameters extracted from the parser
         '''
         self.args = parse_args(argv)
+        self.top_k = top_k
         self.display_img = display_img  # boolean to chose if display image results or not
         self.score_threshold = score_threshold  # threshold used to filter the detectio results
         model_path = SavePath.from_str(model_weights)
@@ -131,7 +133,7 @@ class YolactInference:
 
         with timer.env('Copy'):
 
-            idx = t[1].argsort(0, descending=True)[:self.args.top_k]
+            idx = t[1].argsort(0, descending=True)[:self.top_k]
 
             classes, scores, boxes = [x[idx].cpu().numpy() for x in t[:3]]
             masks = t[3][idx]
@@ -145,7 +147,7 @@ class YolactInference:
 
         if self.display_img:
 
-            num_dets_to_consider = min(self.args.top_k, classes.shape[0])
+            num_dets_to_consider = min(self.top_k, classes.shape[0])
             for j in range(num_dets_to_consider):
                 if scores[j] < self.score_threshold:
                     num_dets_to_consider = j
