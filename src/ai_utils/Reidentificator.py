@@ -72,10 +72,9 @@ class Reidentificator:
         print('Done.')
 
         self.iteration_number = 0
-        self.required_calibration_measures = 300
-        self.std_dev_confidence = 2.2
+        self.required_calibration_measures = 500
+        self.std_dev_confidence = 1.7
         self.calibrated = False
-        self.calibration_finished = False
 
         self.feats = []
         self.feats_distances = []
@@ -116,7 +115,7 @@ class Reidentificator:
             self.feats.append(self.model_REID(img_person.cuda()).data.cpu()[0].numpy())
 
             # after meas_init measures we terminate the initialization
-            if self.iteration_number >= self.required_calibration_measures:
+            if self.iteration_number > self.required_calibration_measures:
                 print('\nCALIBRATION FINISHED')
 
                 self.calibrated = True
@@ -225,69 +224,58 @@ class Reidentificator:
 
         return reidentified_class
 
-    ### ONLY USED FOR STATISTICS
+    # ------------ONLY USED FOR STATISTICS-----------------
     def calibrate_person_statistics(self, rgb):
         '''
         Function used to calibrate the reidentificator with the object image. This function should be called iteratively
         until it returns True (i.e., when the object is calibrated)
         :param rgb: the image in which there is the object
-        :param inference_output: a dictionary containing the inferences obtained by an instance segmentation algorithm
-        (e.g., Yolact++)
         :return: A boolean which confirm if the object has been correctly calibrated or not
         '''
 
+        percentage = self.iteration_number / self.required_calibration_measures * 100
+        if percentage % 10 == 0:
+            print("CALIBRATING ", int(percentage), "%")
+        img_person = self.transform(torch.from_numpy(rgb).unsqueeze(0).cuda().float())
+        self.iteration_number += 1
+        self.feats.append(self.model_REID(img_person.cuda()).data.cpu()[0].numpy())
+
         if self.iteration_number >= self.required_calibration_measures:
-            if not self.calibrated:
+            print('\nCALIBRATION FINISHED\n')
+            self.calibrated = True
 
-                self.mean_pers = np.mean(np.array(self.feats), axis=0)
-                self.std_pers = np.std(np.array(self.feats), axis=0)
-                self.mahalanobis_deviation_const = np.sqrt(self.mean_pers.shape[0])
-                self.calibrated = True
-                print('\nCALIBRATION FINISHED\n')
+            self.feats = shuffle(self.feats)
+            calibration_threshold_slice = int(len(self.feats) * 2 / 3)
 
-            if self.iteration_number - self.required_calibration_measures < 100:
-                percentage = self.iteration_number - self.required_calibration_measures / 100 * 100
-                if percentage % 10 == 0:
-                    print("THRESHOLD COMPUTATION ", int(percentage), "%")
-                img_person = self.transform(torch.from_numpy(rgb).unsqueeze(0).cuda().float())
-                self.iteration_number += 1
-                # feat_pers = self.model_REID(img_person.cuda()).data.cpu()[0].numpy()
-                feat_pers = self.model_REID(img_person).data.cpu()
-                # pdb.set_trace()
-                dist = np.linalg.norm((feat_pers - self.mean_pers) / (self.mahalanobis_deviation_const * self.std_pers),
-                                      axis=1)
 
-                self.feats_distances.append(dist)
-            else:
-                # plt.plot(np.arange(len(self.feats_distances)), np.array(self.feats_distances))
-                # plt.plot(np.ones(len(self.feats_distances)) * np.mean(np.array(self.feats_distances)))
-                # plt.plot(np.ones(len(self.feats_distances)) * (np.mean(np.array(self.feats_distances)) +
-                #                                                2.2 * np.std(np.array(self.feats_distances))))
-                # plt.legend(["Thresholds", "Mean", "2.2 std"])
-                # plt.grid(True)
-                # plt.show()
+            feat_calibrate = self.feats[:calibration_threshold_slice]
+            self.mean_pers = np.mean(np.array(feat_calibrate), axis=0)
+            self.std_pers = np.std(np.array(feat_calibrate), axis=0)
+            self.mahalanobis_deviation_const = np.sqrt(self.mean_pers.shape[0])
 
-                self.feature_threshold = np.mean(np.array(self.feats_distances)) + \
-                                         self.std_dev_confidence * np.std(np.array(self.feats_distances))
-                print("\nTHRESHOLD: %.4f" % self.feature_threshold)
-                self.calibration_finished = True
+            feat_threshold = self.feats[calibration_threshold_slice:]
+            person_mean_feat = np.tile(self.mean_pers, (len(feat_threshold), 1))
+            person_std_feat = np.tile(self.std_pers, (len(feat_threshold), 1))
+            dist_threshold = np.linalg.norm(
+                (feat_threshold - person_mean_feat) / (self.mahalanobis_deviation_const * person_std_feat), axis=1)
 
-        else:  # CALIBRATION
-            percentage = self.iteration_number / self.required_calibration_measures * 100
-            if percentage % 10 == 0:
-                print("CALIBRATING ", int(percentage), "%")
-            img_person = self.transform(torch.from_numpy(rgb).unsqueeze(0).cuda().float())
-            self.iteration_number += 1
-            self.feats.append(self.model_REID(img_person.cuda()).data.cpu()[0].numpy())
+            # plt.plot(np.arange(len(dist_threshold)), np.array(dist_threshold))
+            # plt.plot(np.ones(len(dist_threshold)) * np.mean(np.array(dist_threshold)))
+            # plt.plot(np.ones(len(dist_threshold)) * (np.mean(np.array(dist_threshold)) + self.std_dev_confidence * np.std(np.array(dist_threshold))))
+            # plt.legend(["Distances", "Mean", "Threshold (Mean + 2 std)"])
+            # plt.grid(True)
+            # plt.show()
 
-        return self.calibration_finished
+            self.feature_threshold = np.mean(np.array(dist_threshold)) + self.std_dev_confidence * np.std(
+                np.array(dist_threshold))
+            print("\nTHRESHOLD: %.4f" % self.feature_threshold)
+
+        return self.calibrated
 
     def reidentify_statistics(self, rgb):
         '''
         Used to reidentify the calibrated object on the image (if present)
         :param rgb: the image in which there should be the object to reidentify
-        :param inference_output: a dictionary containing the inferences obtained by an instance segmentation algorithm
-        (e.g., Yolact++)
         :return: the mask of the targeted object if reidentified
         '''
         rgb = rgb.copy()
@@ -307,7 +295,32 @@ class Reidentificator:
         else:
             reidentified_class = True
 
-
         return reidentified_class
 
+    def reidentify_statistics_in_images(self, images: dict) -> str:
+        '''
+        Used to reidentify the calibrated object on the image (if present)
+        :param images: the image in which there should be the object to reidentify
+        :return: the mask of the targeted object if reidentified
+        '''
+        min_dist = 2000000000
+        reidentified_class = None
+        for person, image in images.items():
+            if not self.calibrated:
+                sys.exit("Error: Reidentificator not calibrated!")
 
+            img_persons = self.transform(torch.from_numpy(image).unsqueeze(0).cuda().float())
+            # PASS THE IMAGES INSIDE THE EXTERNAL NETWORK
+            feat_pers = self.model_REID(img_persons).data.cpu()
+            # COMPUTE FEATURES DISTANCES
+            dist = np.linalg.norm((feat_pers - self.mean_pers) / (self.mahalanobis_deviation_const * self.std_pers),
+                                  axis=1)
+            if dist < min_dist:
+                min_dist = dist
+                reidentified_class = person
+            # print(dist)
+            # RETURN REIDENTIFIED CLASS IFF THE DISTANCE BETWEEN FEATURE IS NO MORE THAN A THRESHOLD
+        if min_dist > self.feature_threshold:
+            reidentified_class = None
+
+        return reidentified_class
