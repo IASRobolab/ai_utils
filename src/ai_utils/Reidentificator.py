@@ -73,7 +73,7 @@ class Reidentificator:
 
         self.iteration_number = 0
         self.required_calibration_measures = 500
-        self.std_dev_confidence = 1.7
+        self.std_dev_confidence = 2
         self.calibrated = False
 
         self.feats = []
@@ -246,7 +246,6 @@ class Reidentificator:
 
             self.feats = shuffle(self.feats)
             calibration_threshold_slice = int(len(self.feats) * 2 / 3)
-
 
             feat_calibrate = self.feats[:calibration_threshold_slice]
             self.mean_pers = np.mean(np.array(feat_calibrate), axis=0)
