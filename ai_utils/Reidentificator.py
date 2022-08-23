@@ -8,8 +8,6 @@ from mmt.utils.serialization import load_checkpoint, copy_state_dict
 import matplotlib.pyplot as plt
 from sklearn.utils import shuffle
 
-import pdb
-
 
 class FastBaseTransform(torch.nn.Module):
     """
