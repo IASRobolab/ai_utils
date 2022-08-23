@@ -32,6 +32,12 @@ To install ai_utils on your system clone the repo, open a terminal in the main d
 ```
 python3 -m pip install .
 ```
+Instead if you want to install the package in "editable" or "develop" mode (to prevent the uninstall/install of the 
+package at every pkg chjangings) you have can run the following command:
+
+```
+python3 -m pip install -e .
+```
 
 # Setup and Run
 
