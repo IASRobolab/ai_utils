@@ -12,7 +12,7 @@ import torch.backends.cudnn as cudnn
 import argparse
 from collections import defaultdict
 import cv2
-
+import pdb
 
 def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
@@ -274,11 +274,13 @@ class YolactInference:
             inference = self.output_formatting_and_display(preds, frame)
 
         inference_out = {}
+        
         if inference is not None:
 
             for idx, cls in enumerate(inference[0]):
                 cls = cfg.dataset.class_names[cls]
-                if not classes or cls in classes:
+                if inference[1][idx] > self.score_threshold:
+                  if not classes or cls in classes:
                     if cls not in inference_out.keys():
                         inference_out[cls] = {}
                         inference_out[cls]['scores'] = []
