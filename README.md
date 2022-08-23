@@ -13,6 +13,7 @@ improve research quality.
 
 
 ## How to
+- [Install ai_utils](#install-ai_utils)
 - [Setup and Run](#setup-and-run)
   - [Yolact++](#yolact++-setup)
   - [Mask2Former](#mask2former-setup)
@@ -24,6 +25,13 @@ improve research quality.
   - [MMT](#mmt-installation)
   - [Mediapipe](#mediapipe-installation)
 - [Find packacge directory path](#find-package-path)
+
+# Install ai_utils
+
+To install ai_utils on your system clone the repo, open a terminal in the main directory and run the following command:
+```
+python3 -m pip install .
+```
 
 # Setup and Run
 
