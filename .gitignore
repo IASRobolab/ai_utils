@@ -1,1 +1,6 @@
 *__pycache__
+.gitignore
+.vscode
+.idea
+build
+*.egg-info
