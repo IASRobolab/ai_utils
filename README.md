@@ -312,8 +312,13 @@ If the files are saved as has been declared above you can use the following comm
     import os
     pkg_dir_name = '/' + os.path.join(*os.path.abspath(__file__).split('/')[:-2])
 ```
-
-
+NOTE: in ROS2 packages are installed in the install directory of your workspace so the command to use to retrieve weight
+dir is:
+```python
+    import os
+    pkg_dir_name = '/' + os.path.join(*__file__.split('/')[:-5]) + '/share/PACKAGE_NAME/'
+```
+Anyway the path depends on how you install your package, the above command follow the standard convention.
 
 
 
