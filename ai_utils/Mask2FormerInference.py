@@ -56,7 +56,7 @@ def get_parser():
         nargs=argparse.REMAINDER,
     )
     return parser
-    
+
 
 class Mask2FormerInference:
 
@@ -86,6 +86,33 @@ class Mask2FormerInference:
         self.predictor = DefaultPredictor(cfg)
 
         self.available_classes = self.metadata.stuff_classes
+
+
+    def add_class(self, cls) -> bool:
+        if isinstance(cls, str):
+            self.classes_white_list.add(cls)
+        elif isinstance(cls, list) or isinstance(cls, set):
+            self.classes_white_list.update(cls)
+        else:
+            print("\033[91mERROR: add_class function accept only string, lists or sets.\033[0m")
+            return False
+        return True
+
+
+    def remove_class(self, cls) -> bool:
+        if isinstance(cls, str):
+            self.classes_white_list.discard(cls)
+        elif isinstance(cls, list) or isinstance(cls, set):
+            for value in cls:
+                self.classes_white_list.discard(value)
+        else:
+            print("\033[91mERROR: remove_class function accept only string, lists or sets.\033[0m")
+            return False
+        return True
+
+
+    def empty_white_list(self):
+        self.classes_white_list.clear()
 
 
     def img_inference(self, img):
@@ -121,7 +148,7 @@ class Mask2FormerInference:
             cv2.namedWindow("Mask2Former", cv2.WINDOW_NORMAL)
             cv2.imshow("Mask2Former", img)
 
-            if cv2.waitKey(0) == ord('q'):
+            if cv2.waitKey(1) == ord('q'):
                 print("Closed Mask2Former Image Viewer.")
                 exit(0)
 
