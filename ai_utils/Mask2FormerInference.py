@@ -58,74 +58,20 @@ def get_parser():
     return parser
 
 
-class VisualizationDemo(object):
-    def __init__(self, cfg, instance_mode=ColorMode.IMAGE):
-        """
-        Args:
-            cfg (CfgNode):
-            instance_mode (ColorMode):
-            parallel (bool): whether to run the model in different processes from visualization.
-                Useful since the visualization logic can be slow.
-        """
-        self.metadata = MetadataCatalog.get(
-            cfg.DATASETS.TEST[0] if len(cfg.DATASETS.TEST) else "__unused"
-        )
-        self.cpu_device = torch.device("cpu")
-        self.instance_mode = instance_mode
-
-        self.predictor = DefaultPredictor(cfg)
-
-    def run_on_image(self, image, display_img, classes=None):
-        """
-        Args:
-            image (np.ndarray): an image of shape (H, W, C) (in BGR order).
-                This is the format used by OpenCV.
-            display_img (bool): True if you want to print segmentation on image, False otherwise
-            classes (list): a list containing the classes names that we want to extract from picture
-        Returns:
-            predictions (dict): the output of the model.
-            vis_output (VisImage): the visualized image output.
-        """
-        available_classes = self.metadata.stuff_classes
-
-        if classes is None:
-            classes = []
-
-        predictions = self.predictor(image)
-        panoptic_seg, segments_info = predictions["panoptic_seg"]
-
-        # TODO: control if predicitions could be none
-        # format the predicted output in a standard Rollo format
-        inference_out = {}
-        for sinfo in segments_info:
-            current_class = available_classes[sinfo['category_id']]
-            current_class = current_class.split(",")[0]
-            current_id = sinfo['id']
-            if not classes or current_class in classes:
-                if current_class not in inference_out.keys():
-                    inference_out[current_class] = {}
-                    inference_out[current_class]['masks'] = []
-                inference_out[current_class]['masks'].append(
-                    (panoptic_seg.detach().cpu().numpy() == current_id).astype(int)
-                )
-
-        # returns only prediction  if you don't want to display the formatted image
-        if display_img:
-            # Convert image from OpenCV BGR format to Matplotlib RGB format.
-            image = image[:, :, ::-1]
-            visualizer = Visualizer(image, self.metadata, instance_mode=self.instance_mode)
-
-            vis_output, vect_semantics = visualizer.draw_panoptic_seg_predictions(panoptic_seg.to(self.cpu_device),
-                                                                                  segments_info)
-            image = vis_output.get_image()[:, :, ::-1]
-
-        return image, inference_out
-
-
 class Mask2FormerInference:
 
-    def __init__(self, model_weights, config_file,  display_img=False):
+    classes_white_list: set
+
+    def __init__(self, model_weights, config_file,  display_img=False, classes_white_list=set()):
         self.display_img = display_img
+
+
+        if classes_white_list is None:
+            classes_white_list = set()
+        elif not isinstance(classes_white_list, set):
+            classes_white_list = set(classes_white_list)
+
+        self.classes_white_list = classes_white_list
 
         mp.set_start_method("spawn", force=True)
         argv = ["--config-file", config_file, "--opts", "MODEL.WEIGHTS", model_weights]
@@ -138,15 +84,77 @@ class Mask2FormerInference:
 
         cfg = setup_cfg(args)
 
-        self.demo = VisualizationDemo(cfg)
+        self.metadata = MetadataCatalog.get(
+            cfg.DATASETS.TEST[0] if len(cfg.DATASETS.TEST) else "__unused"
+        )
+        self.cpu_device = torch.device("cpu")
+        self.instance_mode = ColorMode.IMAGE
 
-    def img_inference(self, img, classes=None):
+        self.predictor = DefaultPredictor(cfg)
 
-        visualized_output, inference_out = self.demo.run_on_image(img, self.display_img, classes)
+        self.available_classes = self.metadata.stuff_classes
 
+
+    def add_class(self, cls) -> bool:
+        if isinstance(cls, str):
+            self.classes_white_list.add(cls)
+        elif isinstance(cls, list) or isinstance(cls, set):
+            self.classes_white_list.update(cls)
+        else:
+            print("\033[91mERROR: add_class function accept only string, lists or sets.\033[0m")
+            return False
+        return True
+
+
+    def remove_class(self, cls) -> bool:
+        if isinstance(cls, str):
+            self.classes_white_list.discard(cls)
+        elif isinstance(cls, list) or isinstance(cls, set):
+            for value in cls:
+                self.classes_white_list.discard(value)
+        else:
+            print("\033[91mERROR: remove_class function accept only string, lists or sets.\033[0m")
+            return False
+        return True
+
+
+    def empty_white_list(self):
+        self.classes_white_list.clear()
+        return True
+
+
+    def img_inference(self, img):
+
+        predictions = self.predictor(img)
+        panoptic_seg, segments_info = predictions["panoptic_seg"]
+
+        # TODO: control if predicitions could be none
+        # format the predicted output in a standard Rollo format
+        inference_out = {}
+        for sinfo in segments_info:
+            current_class = self.available_classes[sinfo['category_id']]
+            current_class = current_class.split(",")[0]
+            current_id = sinfo['id']
+            if not self.classes_white_list or current_class in self.classes_white_list:
+                if current_class not in inference_out.keys():
+                    inference_out[current_class] = {}
+                    inference_out[current_class]['masks'] = []
+                inference_out[current_class]['masks'].append(
+                    (panoptic_seg.detach().cpu().numpy() == current_id).astype(int)
+                )
+
+        # returns only prediction  if you don't want to display the formatted image
         if self.display_img:
+            # Convert image from OpenCV BGR format to Matplotlib RGB format.
+            img = img[:, :, ::-1]
+            visualizer = Visualizer(img, self.metadata, instance_mode=self.instance_mode)
+
+            vis_output, vect_semantics = visualizer.draw_panoptic_seg_predictions(panoptic_seg.to(self.cpu_device),
+                                                                                  segments_info)
+            img = vis_output.get_image()[:, :, ::-1]
+
             cv2.namedWindow("Mask2Former", cv2.WINDOW_NORMAL)
-            cv2.imshow("Mask2Former", visualized_output)
+            cv2.imshow("Mask2Former", img)
 
             if cv2.waitKey(1) == ord('q'):
                 print("Closed Mask2Former Image Viewer.")
