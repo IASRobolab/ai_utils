@@ -17,6 +17,7 @@ improve research quality.
 - [Install Algorithms](#install-algorithms)
 - [Setup and Run Algorithms](#setup-and-run-algorithms)
 - [Find package directory path](#find-package-path)
+- [Run Tests](#run-tests)
 
 # Install ai_utils module 
 
@@ -72,7 +73,18 @@ dir is:
 ```
 Anyway the path depends on how you install your package, the above command follow the standard convention of ROS2.
 
+# Run Tests
 
+To run the tests in the ```tests``` directory you have to install pytest:
+```
+    sudo apt-get install pytest
+```
+You can run tests from the terminal. Open a terimal in the ai_utils directory and type the following command:
+```
+    python -m pytest .
+```
+
+Warnings are not meaningful in general.
 
 
 
