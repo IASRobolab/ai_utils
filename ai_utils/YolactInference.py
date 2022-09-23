@@ -60,7 +60,9 @@ color_cache = defaultdict(lambda: {})
 
 class YolactInference:
 
-    def __init__(self, model_weights, display_img=False, score_threshold=0.5, top_k=15, argv=None):
+    classes_white_list: set
+
+    def __init__(self, model_weights, display_img=False, score_threshold=0.5, top_k=15, classes_white_list=set(), argv=None):
         '''
         Yolact detector used to classify, detect and segment objects on an image
         :param display_img: boolean used to return the results plotted on image
@@ -75,6 +77,7 @@ class YolactInference:
         self.top_k = top_k
         self.display_img = display_img  # boolean to chose if display image results or not
         self.score_threshold = score_threshold  # threshold used to filter the detectio results
+        self.classes_white_list = classes_white_list
         model_path = SavePath.from_str(model_weights)
         self.args.config = model_path.model_name + '_config'
         set_cfg(self.args.config)
@@ -104,6 +107,34 @@ class YolactInference:
             self.net.detect.use_fast_nms = self.args.fast_nms
             self.net.detect.use_cross_class_nms = self.args.cross_class_nms
             cfg.mask_proto_debug = self.args.mask_proto_debug
+
+
+    def add_class(self, cls) -> bool:
+        if isinstance(cls, str):
+            self.classes_white_list.add(cls)
+        elif isinstance(cls, list) or isinstance(cls, set):
+            self.classes_white_list.update(cls)
+        else:
+            print("\033[91mERROR: add_class function accept only string, lists or sets.\033[0m")
+            return False
+        return True
+
+
+    def remove_class(self, cls) -> bool:
+        if isinstance(cls, str):
+            self.classes_white_list.discard(cls)
+        elif isinstance(cls, list) or isinstance(cls, set):
+            for value in cls:
+                self.classes_white_list.discard(value)
+        else:
+            print("\033[91mERROR: remove_class function accept only string, lists or sets.\033[0m")
+            return False
+        return True
+
+
+    def empty_white_list(self):
+        self.classes_white_list.clear()
+
 
     def output_formatting_and_display(self, dets_out, img, class_color=True, fps_str=''):
         '''
@@ -255,17 +286,15 @@ class YolactInference:
 
         return inference
 
-    def img_inference(self, rgb, classes=None):
+    def img_inference(self, rgb):
         '''
         Used to make the inference on an image depending on the weight with which the object has been initialized
         :param rgb: the image on which make the inference
-        :param classes: a list containing the classes we want to detect
         :return: the image formatted with the results (if self.display is True) and a dictionary containing the
         inferences e.g., {'class_0': {'scores': [s1, s2], 'boxes': [b1, b2], 'masks': [m1, m2]},
                           'class_1': {'scores': [s1], 'boxes': [b1], 'masks': [m2]}, OTHER_CLASSES..}
         '''
-        if classes is None:
-            classes = []
+
         frame = torch.from_numpy(rgb).cuda().float()
         batch = FastBaseTransform()(frame.unsqueeze(0))
         preds = self.net(batch)
@@ -280,14 +309,15 @@ class YolactInference:
             for idx, cls in enumerate(inference[0]):
                 cls = cfg.dataset.class_names[cls]
                 if inference[1][idx] > self.score_threshold:
-                  if not classes or cls in classes:
-                    if cls not in inference_out.keys():
-                        inference_out[cls] = {}
-                        inference_out[cls]['scores'] = []
-                        inference_out[cls]['boxes'] = []
-                        inference_out[cls]['masks'] = []
-                    inference_out[cls]['scores'].append(inference[1][idx])
-                    inference_out[cls]['boxes'].append(inference[2][idx])
-                    inference_out[cls]['masks'].append(inference[3][idx])
+                    # expretion which evaluates if self.classes_white_list is empty OR the current class is in the white list
+                    if not self.classes_white_list or cls in self.classes_white_list:
+                        if cls not in inference_out.keys():
+                            inference_out[cls] = {}
+                            inference_out[cls]['scores'] = []
+                            inference_out[cls]['boxes'] = []
+                            inference_out[cls]['masks'] = []
+                        inference_out[cls]['scores'].append(inference[1][idx])
+                        inference_out[cls]['boxes'].append(inference[2][idx])
+                        inference_out[cls]['masks'].append(inference[3][idx])
 
         return inference_out
