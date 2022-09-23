@@ -64,6 +64,13 @@ class Mask2FormerInference:
 
     def __init__(self, model_weights, config_file,  display_img=False, classes_white_list=set()):
         self.display_img = display_img
+
+
+        if classes_white_list is None:
+            classes_white_list = set()
+        elif not isinstance(classes_white_list, set):
+            classes_white_list = set(classes_white_list)
+
         self.classes_white_list = classes_white_list
 
         mp.set_start_method("spawn", force=True)
@@ -113,6 +120,7 @@ class Mask2FormerInference:
 
     def empty_white_list(self):
         self.classes_white_list.clear()
+        return True
 
 
     def img_inference(self, img):
