@@ -77,7 +77,13 @@ class YolactInference:
         self.top_k = top_k
         self.display_img = display_img  # boolean to chose if display image results or not
         self.score_threshold = score_threshold  # threshold used to filter the detectio results
+
+        if classes_white_list is None:
+            classes_white_list = set()
+        elif not isinstance(classes_white_list, set):
+            classes_white_list = set(classes_white_list)
         self.classes_white_list = classes_white_list
+
         model_path = SavePath.from_str(model_weights)
         self.args.config = model_path.model_name + '_config'
         set_cfg(self.args.config)
@@ -132,8 +138,9 @@ class YolactInference:
         return True
 
 
-    def empty_white_list(self):
+    def empty_white_list(self) -> bool:
         self.classes_white_list.clear()
+        return True
 
 
     def output_formatting_and_display(self, dets_out, img, class_color=True, fps_str=''):
