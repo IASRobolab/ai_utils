@@ -1,11 +1,11 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 package_name = 'ai_utils'
 
 setup(
     name=package_name,
     version='1.0.0',
-    packages=[package_name],
+    packages=find_packages(),
     data_files=[],
     install_requires=['setuptools', 'opencv-python', 'mediapipe', 'matplotlib', 'sklearn'],
     zip_safe=True,
