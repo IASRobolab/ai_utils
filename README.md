@@ -79,7 +79,14 @@ To run the tests in the ```tests``` directory you have to install pytest:
 ```
     sudo apt-get install pytest
 ```
-You can run tests from the terminal. Open a terimal in the ai_utils directory and type the following command:
+Before running the tests you have to download the neural network weights from: 
+- [Yolact weights](https://drive.google.com/file/d/1SOTmS1UMBOSmnGbeVVRooTAOXYrhBvZZ/view?usp=sharing)
+- [Mask2former weights](https://drive.google.com/file/d/1jdU_F01kVx5fO2yqeqt8IOMZ3-IpV7TN/view?usp=sharing)
+- [Mask2former net_config directory](https://drive.google.com/drive/folders/1nnJ4R2Hx3n4eZ7pGGpUbOBX4d6dLMKkE?usp=sharing)
+
+Put the weights and the config files in directories and change the path of weights in the tests scripts. All these passages are explained in the documentation: [Mask2Former setup](docs/mask2former/mask2former_setup.md) and [Yolact++ setup](docs/yolact/yolact_setup.md). You can put directories directly in ai_utils package.
+
+Finally, you can run tests from the terminal. Open a terimal in the ai_utils directory and type the following command:
 ```
     python -m pytest .
 ```
