@@ -1,4 +1,4 @@
-from ai_utils.YolactInference import YolactInference
+from ai_utils.detectors.YolactInference import YolactInference
 import cv2
 from pathlib import Path
 import os

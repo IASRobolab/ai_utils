@@ -1,4 +1,4 @@
-from ai_utils.Mask2FormerInference import Mask2FormerInference
+from ai_utils.detectors.Mask2FormerInference import Mask2FormerInference
 import cv2
 from pathlib import Path
 
