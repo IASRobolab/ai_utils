@@ -1,8 +1,16 @@
 from ai_utils.Mask2FormerInference import Mask2FormerInference
 import cv2
+from pathlib import Path
 
-mask2former = Mask2FormerInference(model_weights="/home/frollo/ros_workspaces/ros2/nav_ws/src/artifacts_mapping/artifacts_mapping_lib/weights/model_final_e0c58e.pkl", 
-config_file="/home/frollo/ros_workspaces/ros2/nav_ws/src/artifacts_mapping/artifacts_mapping_lib/net_config/maskformer2_swin_large_IN21k_384_bs16_160k.yaml"
+##### ! change the weights and net config folders below with your paths ! #####
+weights_folder = str(Path.home()) + "/ros_workspaces/ros2/nav_ws/src/artifacts_mapping/artifacts_mapping_lib/weights"
+config_folder = str(Path.home()) + "/ros_workspaces/ros2/nav_ws/src/artifacts_mapping/artifacts_mapping_lib/net_config"
+##### ! ############################################################### ! #####
+
+# Neural Network initialization 
+mask2former = Mask2FormerInference(
+    model_weights = weights_folder + "/model_final_e0c58e.pkl", 
+    config_file = config_folder + "/maskformer2_swin_large_IN21k_384_bs16_160k.yaml"
 )
 
 # !!IMPORTANT!! We are doing tests with an instance of mask2former class. 

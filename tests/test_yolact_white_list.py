@@ -1,7 +1,16 @@
 from ai_utils.YolactInference import YolactInference
 import cv2
+from pathlib import Path
+import os
 
-yolact = YolactInference("/home/frollo/ros_workspaces/ros1/navigation_ws/src/vision_controller/weights/yolact_plus_resnet50_54_800000.pth")
+##### ! change the weights folder below with your paths ! #####
+weights_folder = str(Path.home()) + "/ros_workspaces/ros1/navigation_ws/src/vision_controller/weights"
+##### ! ############################################### ! #####
+
+# Neural Network initialization 
+yolact = YolactInference(
+    model_weights = weights_folder + "/yolact_plus_resnet50_54_800000.pth"
+)
 
 # ADD TESTS
 def test_add_single_class_in_empty_set():
