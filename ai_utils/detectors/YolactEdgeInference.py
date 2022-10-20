@@ -69,7 +69,7 @@ def parse_args(argv=None):
                         help='Maximum batch size to use during TRT conversion. This has to be greater than or equal to the batch size the model will take during inferece.')
     parser.add_argument('--disable_tensorrt', default=False, dest='disable_tensorrt', action='store_true',
                         help='Don\'t use TensorRT optimization when specified.')
-    parser.add_argument('--use_fp16_tensorrt', default=False, dest='use_fp16_tensorrt', action='store_true',
+    parser.add_argument('--use_fp16_tensorrt', default=True, dest='use_fp16_tensorrt', action='store_true',
                         help='This replaces all TensorRT INT8 optimization with FP16 optimization when specified.')
     parser.add_argument('--use_tensorrt_safe_mode', default=False, dest='use_tensorrt_safe_mode', action='store_true',
                         help='This enables the safe mode that is a workaround for various TensorRT engine issues.')
@@ -122,6 +122,7 @@ class YolactEdgeInference(DetectorInterface):
             self.net = Yolact()
             try:
                 self.net.load_weights(model_weights)
+                
             except FileNotFoundError:
                 print('\n\033[91mThe weight in ' + model_weights + " does not exists. You must download them "
                                                                    "in that directory.\033[0m")
