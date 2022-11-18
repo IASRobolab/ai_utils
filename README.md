@@ -39,14 +39,6 @@ The package contains the following algorith wrappers.
 - **Pose detection** 
   - Mediapipe (hand pose)
 
-
-## How to
-- [Install ai_utils](#install-ai_utils-module)
-- [Install Algorithms](#install-algorithms)
-- [Setup and Run Algorithms](#setup-and-run-algorithms)
-- [Find package directory path](#find-package-path)
-- [Run Tests](#run-tests)
-
 ## Getting started
 ___
 ### Dependencies
