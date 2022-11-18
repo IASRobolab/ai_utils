@@ -3,10 +3,6 @@ First of all, clone the custom yolact++ repository, which contains the setup.py 
 not change after installation). This repository has been slightly modified by the Robolab Leonardo fellows. Python 3
 is needed to run Yolact++.
 
-Install the right pytorch dependences:
-``` commandline
-pip install torch==1.10.2+cu113 torchvision==0.11.3+cu113 torchaudio==0.10.2 -f https://download.pytorch.org/whl/torch_stable.html
-```
 To install Yolact++ on your pip environment, activate your environment (or install directly on system if you prefer)
 and run:
 ``` commandline
