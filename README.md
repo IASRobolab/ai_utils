@@ -1,8 +1,36 @@
 # ai_utils
 This package is aimed to contain different wrappers for the AI algorithms used in the labs to speed up development and 
 improve research quality.
+___
 
-## Algorithms
+<!-- TABLE OF CONTENTS -->
+<details>
+  <summary>Table of Contents</summary>
+  <ol>
+    <li><a href="#description">Description</a></li>
+    <li>
+      <a href="#getting-started">Getting Started</a>
+      <ul>
+        <li><a href="#dependencies">Dependencies</a></li>
+        <li><a href="#installation">Installation</a></li>
+      </ul>
+    </li>
+    <li><a href="#usage">Usage</a></li>
+    <li>
+      <a href="#utilities">Utilities</a>
+      <ul>
+          <li><a href="#find-package-path">Find package path</a></li>
+          <li><a href="#run-tests">Run tests</a></li>
+      </ul>
+    </li>
+    <li><a href="#license">License</a></li>
+    <li><a href="#authors">Authors</a></li>
+  </ol>
+</details>
+
+___
+## Description
+The package contains the following algorith wrappers.
 - **Image segmentation**
   - Yolact++ (Instance segmentation)
   - Mask2Former (Panoptic segmentation)
@@ -19,7 +47,11 @@ improve research quality.
 - [Find package directory path](#find-package-path)
 - [Run Tests](#run-tests)
 
-# Install ai_utils module 
+## Getting started
+___
+### Dependencies
+Each wrapper depends on its own AI module package. (e.g., ```YolactInference``` depends on ```Yolact```).
+### Installation
 
 To install ai_utils on your system clone the repo, open a terminal in the main directory and run the following command (source your virtual env if you use them):
 ```
@@ -30,33 +62,34 @@ Instead if you want to install the package in "editable" or "develop" mode (to p
 ```
 python3 -m pip install -e .
 ```
+#### AI modules installation
 
-
-# Install Algorithms 
 To use the ai_utils library in your local pip you can refer to the following documentation depending on what you want to install. \
 Be sure that your python build command is upgraded:
 ``` commandline
   pip install --upgrade build
 ```
-### Algorihm installations documentation:
+- Algorihm installations documentation
 
-- [Yolact++ installation](docs/yolact/yolact_installation.md)
-- [Mask2Former installation](docs/mask2former/mask2former_installation.md)
-- [MMT installation](docs/mmt/mmt_installation.md)
-- [Mediapipe installation](docs/mediapipe/mediapipe_installation.md)
-
-# Setup and Run Algorithms
+  - [Yolact++ installation](docs/yolact/yolact_installation.md)
+  - [Mask2Former installation](docs/mask2former/mask2former_installation.md)
+  - [MMT installation](docs/mmt/mmt_installation.md)
+  - [Mediapipe installation](docs/mediapipe/mediapipe_installation.md)
+## Usage
+___
 To use the ai_utils library be sure to have installed the base algorithm as explained in [Install Algorithms](#install-algorithms).
 
-### Algorithms setup documentation:
+- Algorithms setup documentation:
 
-- [Yolact++ setup](docs/yolact/yolact_setup.md)
-- [Mask2Former setup](docs/mask2former/mask2former_setup.md)
-- [MMT setup](docs/mmt/mmt_setup.md)
-- [Mediapipe setup](docs/mediapipe/mediapipe_setup.md)
+  - [Yolact++ setup](docs/yolact/yolact_setup.md)
+  - [Mask2Former setup](docs/mask2former/mask2former_setup.md)
+  - [MMT setup](docs/mmt/mmt_setup.md)
+  - [Mediapipe setup](docs/mediapipe/mediapipe_setup.md)
 
+## Utilities
+___
+### Find package path
 
-# Find package path
 If you are using a standard Cmake package configuration you should save your network weights or config files 
 inside your package under a custom directory ```e.g., YOUR_PACKAGE_PATH/weights/YOUR_WEIGHT)```. \
 You'll probably need your package path in your code to use the AI algorithms (e.g., to load neural network weights).
@@ -73,8 +106,7 @@ dir is:
 ```
 Anyway the path depends on how you install your package, the above command follow the standard convention of ROS2.
 
-# Run Tests
-
+### Run Tests
 To run the tests in the ```tests``` directory you have to install pytest:
 ```
     sudo apt-get install pytest
@@ -93,6 +125,15 @@ Finally, you can run tests from the terminal. Open a terimal in the ai_utils dir
 
 Warnings are not meaningful in general.
 
+## License
+___
+Distributed under the ```GPLv3``` License. See [LICENSE](LICENSE) for more information.
 
+## Authors
+___
+The package is provided by:
+
+- [Federico Rollo](https://github.com/FedericoRollo) [Mantainer]
+- [Andrea Zunino](https://github.com/andreazuna89)
 
 
