@@ -42,7 +42,11 @@ The package contains the following algorith wrappers.
 ## Getting started
 ___
 ### Dependencies
-Each wrapper depends on its own AI module package. (e.g., ```YolactInference``` depends on ```Yolact```).
+Each wrapper depends on its own AI module package. (e.g., ```YolactInference``` depends on ```Yolact```). \
+We generally use a setup with CUDA 11.3 and Nvidia drivers 470. If you have this setup install the following pytorch dependences:
+``` commandline
+pip install torch==1.10.2+cu113 torchvision==0.11.3+cu113 torchaudio==0.10.2 -f https://download.pytorch.org/whl/torch_stable.html
+```
 ### Installation
 
 To install ai_utils on your system clone the repo, open a terminal in the main directory and run the following command (source your virtual env if you use them):
@@ -61,6 +65,7 @@ Be sure that your python build command is upgraded:
 ``` commandline
   pip install --upgrade build
 ```
+
 - Algorihm installations documentation
 
   - [Yolact++ installation](docs/yolact/yolact_installation.md)
