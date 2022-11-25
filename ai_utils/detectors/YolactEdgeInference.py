@@ -84,7 +84,7 @@ color_cache = defaultdict(lambda: {})
 
 class YolactEdgeInference(DetectorInterface):
 
-    def __init__(self, model_weights, display_img=False, return_img=False, score_threshold=0.5, top_k=15, classes_white_list=set(), argv=None):
+    def __init__(self, model_weights, display_img=False, return_img=False, disable_tensorrt=False, score_threshold=0.5, top_k=15, classes_white_list=set(), argv=None):
         '''
         Yolact detector used to classify, detect and segment objects on an image
         :param display_img: boolean used to return the results plotted on image
@@ -100,6 +100,7 @@ class YolactEdgeInference(DetectorInterface):
         self.args = parse_args(argv)
         self.top_k = top_k
         self.return_img = return_img
+        self.disable_tensorrt = disable_tensorrt
 
         model_path = SavePath.from_str(model_weights)
         self.args.config = model_path.model_name + '_config'
