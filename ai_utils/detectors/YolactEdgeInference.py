@@ -67,8 +67,8 @@ def parse_args(argv=None):
                         help='Directory of images for TensorRT INT8 calibration, for explanation of this field, please refer to `calib_images` in `data/config.py`.')
     parser.add_argument('--trt_batch_size', default=2, type=int,
                         help='Maximum batch size to use during TRT conversion. This has to be greater than or equal to the batch size the model will take during inferece.')
-    parser.add_argument('--disable_tensorrt', default=False, dest='disable_tensorrt', action='store_true',
-                        help='Don\'t use TensorRT optimization when specified.')
+    #parser.add_argument('--disable_tensorrt', default=False, dest='disable_tensorrt', action='store_true',
+    #                    help='Don\'t use TensorRT optimization when specified.')
     parser.add_argument('--use_fp16_tensorrt', default=True, dest='use_fp16_tensorrt', action='store_true',
                         help='This replaces all TensorRT INT8 optimization with FP16 optimization when specified.')
     parser.add_argument('--use_tensorrt_safe_mode', default=False, dest='use_tensorrt_safe_mode', action='store_true',
@@ -100,7 +100,7 @@ class YolactEdgeInference(DetectorInterface):
         self.args = parse_args(argv)
         self.top_k = top_k
         self.return_img = return_img
-        self.disable_tensorrt = disable_tensorrt
+        self.args.disable_tensorrt = disable_tensorrt
 
         model_path = SavePath.from_str(model_weights)
         self.args.config = model_path.model_name + '_config'
