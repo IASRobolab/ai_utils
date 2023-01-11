@@ -54,7 +54,6 @@ my_custom_dataset = dataset_base.copy({
     'valid_images': 'path_to_validation_images',
     'valid_info':   'path_to_validation_annotation',
 
-    'has_gt': True,
     'class_names': ('my_class_id_1', 'my_class_id_2', 'my_class_id_3', ...)
 })
 ```
