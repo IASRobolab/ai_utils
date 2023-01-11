@@ -39,9 +39,9 @@ This parameter is used as a filter for the classes that we want in the output in
 a dictionary containing the object inferences found on input image divided by class (Key).
 
 ## Training on custom dataset
-* Before start labelling, be sure to rename all your data with universal names (use rename_imgs_universal_name.py script)
-* Label all your data with labelme tool. It creates a json file for each image
-* From the repo of yolact, run labelme2coco.py script to generate the coco annotation (test and train) json file which include all your annotated data
+* Before start labelling, be sure to rename all your data with universal names 
+* Label all your data with labelme (https://www.dlology.com/blog/how-to-create-custom-coco-data-set-for-instance-segmentation/) tool. It creates a json file for each image with its annotations
+* From the yolact repo, run labelme2coco.py script to generate the coco annotation (test and train) json file which include all your annotated data
 * Modify the train/test json files created and be sure that the the first category_id starts with 1 and not 0. Rename all the category_id in the file by adding 1 to all entries 
 * Add the definition of the custom dataset and the network inside the data/config.py of yolact repo. In the section DATASETS of the config file add a block of code 
 ```
@@ -58,6 +58,18 @@ my_custom_dataset = dataset_base.copy({
     'class_names': ('my_class_id_1', 'my_class_id_2', 'my_class_id_3', ...)
 })
 ```
-
-* Run train.py script to train the network on your customized dataset 
+We are just overwriting some variables form “dataset_base”, so make sure your custom dataset definition comes after that. In the section YOLACT++ CONFIGS of the config file add a block of code 
+```
+yolact_plus_resnet50_CUSTOM_DATASET_config = yolact_plus_resnet50_config.copy({
+    'name': 'yolact_plus_resnet50_CUSTOM_DATASET',
+    # Dataset stuff
+    'dataset': my_custom_dataset,
+    'num_classes': len(my_custom_dataset.class_names) + 1,
+})
+```
+Again, we are overwriting some variables from “yolact_resnet50_config”, so make sure your custom config comes after that
+* Finally, to train the network on your customized dataset run the following script from the yolact repo
+``` python
+    python train.py --config=yolact_plus_resnet50_CUSTOM_DATASET_config
+```
 * Refer to this link for additional help: https://www.immersivelimit.com/tutorials/train-yolact-with-a-custom-coco-dataset
