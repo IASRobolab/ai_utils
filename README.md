@@ -1,10 +1,10 @@
 # ai_utils
-This package is aimed to contain different wrappers for the AI algorithms used in the labs to speed up development and 
+This package contains different wrappers for the AI algorithms used in the labs to speed up development and 
 improve research quality.
-___
+
 
 <!-- TABLE OF CONTENTS -->
-<details>
+
   <summary>Table of Contents</summary>
   <ol>
     <li><a href="#description">Description</a></li>
@@ -26,13 +26,13 @@ ___
     <li><a href="#license">License</a></li>
     <li><a href="#authors">Authors</a></li>
   </ol>
-</details>
 
-___
+
 ## Description
 The package contains the following algorith wrappers.
 - **Image segmentation**
   - Yolact++ (Instance segmentation)
+  - Yolact Edge (Instance segmentation for edge devices)
   - Mask2Former (Panoptic segmentation)
 - **Classification**
   - MMT
@@ -40,7 +40,7 @@ The package contains the following algorith wrappers.
   - Mediapipe (hand pose)
 
 ## Getting started
-___
+
 ### Dependencies
 Each wrapper depends on its own AI module package. (e.g., ```YolactInference``` depends on ```Yolact```). \
 We generally use a setup with CUDA 11.3 and Nvidia drivers 470. If you have this setup install the following pytorch dependences:
@@ -60,8 +60,8 @@ python3 -m pip install -e .
 ```
 #### AI modules installation
 
-To use the ai_utils library in your local pip you can refer to the following documentation depending on what you want to install. \
-Be sure that your python build command is upgraded:
+To use the ai_utils library in your environment you can refer to the following documentation. \
+First of all, be sure that your python build command is properly upgraded:
 ``` commandline
   pip install --upgrade build
 ```
@@ -73,7 +73,6 @@ Be sure that your python build command is upgraded:
   - [MMT installation](docs/mmt/mmt_installation.md)
   - [Mediapipe installation](docs/mediapipe/mediapipe_installation.md)
 ## Usage
-___
 To use the ai_utils library be sure to have installed the base algorithm as explained in [Install Algorithms](#install-algorithms).
 
 - Algorithms setup documentation:
@@ -84,13 +83,12 @@ To use the ai_utils library be sure to have installed the base algorithm as expl
   - [Mediapipe setup](docs/mediapipe/mediapipe_setup.md)
 
 ## Utilities
-___
 ### Find package path
 
 If you are using a standard Cmake package configuration you should save your network weights or config files 
 inside your package under a custom directory ```e.g., YOUR_PACKAGE_PATH/weights/YOUR_WEIGHT)```. \
 You'll probably need your package path in your code to use the AI algorithms (e.g., to load neural network weights).
-If the files are saved as has been declared above you can use the following command to retrieve the package path 
+If the files are saved as has been declared above you can use the following command to retrieve the package path:
 ``` python
     import os
     pkg_dir_name = '/' + os.path.join(*os.path.abspath(__file__).split('/')[:-2])
@@ -123,11 +121,11 @@ Finally, you can run tests from the terminal. Open a terimal in the ai_utils dir
 Warnings are not meaningful in general.
 
 ## License
-___
+
 Distributed under the ```GPLv3``` License. See [LICENSE](LICENSE) for more information.
 
 ## Authors
-___
+
 The package is provided by:
 
 - [Federico Rollo](https://github.com/FedericoRollo) [Mantainer]
