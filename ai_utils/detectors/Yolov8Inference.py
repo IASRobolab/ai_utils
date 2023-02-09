@@ -38,12 +38,12 @@ class Yolov8Inference(DetectorInterface):
 
         results = self.model.predict(rgb, show=self.display_img, verbose=self.verbose, retina_masks=True)
         results = list(results)[0]
-
-        boxes = results.boxes.xywh.tolist()    
-        masks = results.masks.masks.tolist()
-        classes = results.boxes.cls.tolist() 
-        scores = results.boxes.conf.tolist()
-
+        
+        boxes = results.boxes.xyxy.detach().cpu().numpy()  
+        masks = results.masks.masks.detach().cpu().numpy()
+        classes = results.boxes.cls.detach().cpu().numpy()
+        scores = results.boxes.conf.detach().cpu().numpy()
+        
         inference_out = {}
         if results is not None:
             for idx, cls in enumerate(classes):
