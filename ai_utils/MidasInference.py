@@ -52,7 +52,7 @@ class MidasInference:
         self.model, self.transform, self.net_w, self.net_h = load_model(self.device, model_weights, model_type, False, None, False)
     
 
-    def get_depth_image(self, frame): 
+    def get_idepth_image(self, frame): 
 
         with torch.no_grad():
             time_start = time.time()
