@@ -31,8 +31,6 @@ Finally, use the img_inference() function to evaluate the image with the Neural 
 
 - _input_image_: [numpy array] mandatory\
 the image on which to compute the inference
-- _classes_: [list] default = None \
-This parameter is used as a filter for the classes that we want in the output inference dictionary.
 
 **outputs:**
 - _inference_dict_: [dict] \
