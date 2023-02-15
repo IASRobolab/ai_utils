@@ -1,5 +1,5 @@
 
-# Yolact++ setup
+# Yolo v8 setup
 
 ## Setup
 To use Yolo v8 in your code, you need first to move the weights file in a folder called ```weights``` in your package
