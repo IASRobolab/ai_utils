@@ -29,11 +29,12 @@ improve research quality.
 
 
 ## Description
-The package contains the following algorith wrappers.
+The package contains the following algorithm wrappers.
 - **Image segmentation**
   - Yolact++ (Instance segmentation)
   - Yolact Edge (Instance segmentation for edge devices)
   - Mask2Former (Panoptic segmentation)
+  - Yolo v8 (Instance segmentation)
 - **Classification**
   - MMT
 - **Pose detection** 
@@ -66,12 +67,14 @@ First of all, be sure that your python build command is properly upgraded:
   pip install --upgrade build
 ```
 
-- Algorihm installations documentation
+- Algorithm installations documentation
 
   - [Yolact++ installation](docs/yolact/yolact_installation.md)
   - [Mask2Former installation](docs/mask2former/mask2former_installation.md)
   - [MMT installation](docs/mmt/mmt_installation.md)
   - [Mediapipe installation](docs/mediapipe/mediapipe_installation.md)
+  - [Yolo v8 installation](docs/yolo/yolov8_installation.md)
+  
 ## Usage
 To use the ai_utils library be sure to have installed the base algorithm as explained in [Install Algorithms](#install-algorithms).
 
@@ -81,6 +84,7 @@ To use the ai_utils library be sure to have installed the base algorithm as expl
   - [Mask2Former setup](docs/mask2former/mask2former_setup.md)
   - [MMT setup](docs/mmt/mmt_setup.md)
   - [Mediapipe setup](docs/mediapipe/mediapipe_setup.md)
+  - [Yolo v8 setup](docs/yolo/yolov8_setup.md)
 
 ## Utilities
 ### Find package path
@@ -110,6 +114,7 @@ Before running the tests you have to download the neural network weights from:
 - [Yolact weights](https://drive.google.com/file/d/1SOTmS1UMBOSmnGbeVVRooTAOXYrhBvZZ/view?usp=sharing)
 - [Mask2former weights](https://drive.google.com/file/d/1jdU_F01kVx5fO2yqeqt8IOMZ3-IpV7TN/view?usp=sharing)
 - [Mask2former net_config directory](https://drive.google.com/drive/folders/1nnJ4R2Hx3n4eZ7pGGpUbOBX4d6dLMKkE?usp=sharing)
+- [Yolo v8 weights](https://drive.google.com/drive/folders/1nnJ4R2Hx3n4eZ7pGGpUbOBX4d6dLMKkE?usp=sharing)
 
 Put the weights and the config files in directories and change the path of weights in the tests scripts. All these passages are explained in the documentation: [Mask2Former setup](docs/mask2former/mask2former_setup.md) and [Yolact++ setup](docs/yolact/yolact_setup.md). You can put directories directly in ai_utils package.
 
