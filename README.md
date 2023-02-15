@@ -114,7 +114,7 @@ Before running the tests you have to download the neural network weights from:
 - [Yolact weights](https://drive.google.com/file/d/1SOTmS1UMBOSmnGbeVVRooTAOXYrhBvZZ/view?usp=sharing)
 - [Mask2former weights](https://drive.google.com/file/d/1jdU_F01kVx5fO2yqeqt8IOMZ3-IpV7TN/view?usp=sharing)
 - [Mask2former net_config directory](https://drive.google.com/drive/folders/1nnJ4R2Hx3n4eZ7pGGpUbOBX4d6dLMKkE?usp=sharing)
-- [Yolo v8 weights](https://drive.google.com/drive/folders/1nnJ4R2Hx3n4eZ7pGGpUbOBX4d6dLMKkE?usp=sharing)
+- [Yolo v8 weights]([https://drive.google.com/drive/folders/1nnJ4R2Hx3n4eZ7pGGpUbOBX4d6dLMKkE?usp=sharing](https://drive.google.com/file/d/1f1y-8ES8WHio013ScoosoH6pyXXvTmwg/view?usp=share_link))
 
 Put the weights and the config files in directories and change the path of weights in the tests scripts. All these passages are explained in the documentation: [Mask2Former setup](docs/mask2former/mask2former_setup.md) and [Yolact++ setup](docs/yolact/yolact_setup.md). You can put directories directly in ai_utils package.
 
