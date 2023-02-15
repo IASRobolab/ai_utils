@@ -72,6 +72,7 @@ First of all, be sure that your python build command is properly upgraded:
   - [Mask2Former installation](docs/mask2former/mask2former_installation.md)
   - [MMT installation](docs/mmt/mmt_installation.md)
   - [Mediapipe installation](docs/mediapipe/mediapipe_installation.md)
+  - [MiDaS installation](docs/midas/midas_installation.md)
 ## Usage
 To use the ai_utils library be sure to have installed the base algorithm as explained in [Install Algorithms](#install-algorithms).
 
@@ -81,6 +82,7 @@ To use the ai_utils library be sure to have installed the base algorithm as expl
   - [Mask2Former setup](docs/mask2former/mask2former_setup.md)
   - [MMT setup](docs/mmt/mmt_setup.md)
   - [Mediapipe setup](docs/mediapipe/mediapipe_setup.md)
+  - [MiDaS setup](docs/midas/midas_setup.md)
 
 ## Utilities
 ### Find package path
