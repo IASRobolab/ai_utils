@@ -57,7 +57,7 @@ class Yolov8Inference(DetectorInterface):
                             inference_out[cls]['boxes'] = []
                             inference_out[cls]['masks'] = []
                         inference_out[cls]['scores'].append(scores[idx])
-                        inference_out[cls]['boxes'].append(boxes[idx])
+                        inference_out[cls]['boxes'].append(boxes[idx].astype(int))
                         inference_out[cls]['masks'].append(masks[idx])
 
         return inference_out
