@@ -23,7 +23,6 @@
 ---------------------------------------------------------------------------------------------------------------------------------'''
 from ai_utils.detectors.DetectorInterface import DetectorInterface
 from ultralytics.yolo.engine.model import YOLO
-
 class Yolov8Inference(DetectorInterface):
 
     def __init__(self, model_weights, display_img=False, score_threshold=0.5, classes_white_list=set(), verbose=False) -> None:
@@ -31,11 +30,21 @@ class Yolov8Inference(DetectorInterface):
 
         self.model = YOLO(model_weights)
         self.verbose = verbose
+        if '.engine' in model_weights:
+          # list of classes names in the case of a model pre-trained on COCO
+          self.class_names = [ 'person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light',
+           'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow',
+           'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee',
+           'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard',
+           'tennis racket', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple',
+           'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'couch',
+           'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone',
+           'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear',
+           'hair drier', 'toothbrush' ]
 
-
+        else:
+          self.class_names = self.model.names
     def img_inference(self, rgb):
-
-
         results = self.model.predict(rgb, show=self.display_img, verbose=self.verbose, retina_masks=True)
         results = list(results)[0]
         inference_out = {}
@@ -45,7 +54,8 @@ class Yolov8Inference(DetectorInterface):
             classes = results.boxes.cls.detach().cpu().numpy()
             scores = results.boxes.conf.detach().cpu().numpy()
             for idx, cls in enumerate(classes):
-                cls = self.model.names[cls]
+                #cls = self.model.names[cls]
+                cls = self.class_names[int(cls)]
                 if scores[idx] > self.score_threshold:
                     # expression which evaluates if self.classes_white_list is empty OR the current class is in the white list
                     if not self.classes_white_list or cls in self.classes_white_list:
@@ -59,3 +69,4 @@ class Yolov8Inference(DetectorInterface):
                         inference_out[cls]['masks'].append(masks[idx])
 
         return inference_out
+
