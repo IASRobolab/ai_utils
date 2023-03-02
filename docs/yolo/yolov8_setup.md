@@ -48,3 +48,10 @@ a dictionary containing the object inferences found on input image divided by cl
     model = YOLO(PATH TO THE PRETRAINED MODEL (e.g. './yolov8x-seg.pt')) 
     model.train(data= PATH TO data.yaml OF YOUR CUSTOM DATA, epochs=NEPOCHS, batch=BATCHSIZE)
 ```
+
+## TensorRT optimization to speed up the inference
+``` python
+    from ultralytics import YOLO
+    model = YOLO(PATH TO THE PRETRAINED MODEL (e.g. './yolov8x-seg.pt')) 
+    model.export(format='engine', device=0, half=True)
+```
