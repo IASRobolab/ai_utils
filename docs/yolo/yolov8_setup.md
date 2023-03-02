@@ -55,3 +55,4 @@ a dictionary containing the object inferences found on input image divided by cl
     model = YOLO(PATH TO THE PRETRAINED MODEL (e.g. './yolov8x-seg.pt')) 
     model.export(format='engine', device=0, half=True)
 ```
+The command is generating a model of type .engine which can be loaded in a standard way through ultralytics package.
