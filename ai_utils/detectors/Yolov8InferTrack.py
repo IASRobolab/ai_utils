@@ -181,7 +181,9 @@ class Yolov8InferTrack(DetectorInterface):
                 cv2.imshow('YOLO TRACKING', im0)
                 if cv2.waitKey(1) == ord('q'):  # 1 millisecond
                     exit()
-        
+                    
+        ## Block of code for alligning the tracked objects with the detected masks. For each tracked objects we return the corresponding
+        ## mask (the one which has the nearest distance between the bbox tracked and detected) detected in the current frame, if present.
         detection_bboxs = det[:, :4].detach().cpu().numpy()
         masks_track = []
         outputs_track = []
@@ -197,7 +199,7 @@ class Yolov8InferTrack(DetectorInterface):
                    else:
                      outputs_track=np.vstack((outputs_track, out))
                    break
- 
+        ##
         return outputs_track, masks_track
         
         
