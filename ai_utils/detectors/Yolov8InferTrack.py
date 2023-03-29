@@ -30,44 +30,28 @@ os.environ["OPENBLAS_NUM_THREADS"] = "1"
 os.environ["MKL_NUM_THREADS"] = "1"
 os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
 os.environ["NUMEXPR_NUM_THREADS"] = "1"
-import pdb
 import sys
 import platform
 import numpy as np
 from pathlib import Path
 import torch
 import torch.backends.cudnn as cudnn
-import pdb
-FILE = Path(__file__).resolve()
-ROOT = FILE.parents[0]  # yolov5 strongsort root directory
-WEIGHTS = ROOT / 'weights'
-
-if str(ROOT) not in sys.path:
-    sys.path.append(str(ROOT))  # add ROOT to PATH  QUESTO è YOLOv8 TRACKING
-if str(ROOT / 'trackers' / 'strongsort') not in sys.path:
-    sys.path.append(str(ROOT / 'trackers' / 'strongsort'))  # add strong_sort ROOT to PATH
-
-ROOT = Path(os.path.relpath(ROOT, Path.cwd()))  # relative
 
 import logging
 from yolov8.ultralytics.nn.autobackend import AutoBackend
 from yolov8.ultralytics.yolo.data.dataloaders.stream_loaders import LoadImages, LoadStreams
 from yolov8.ultralytics.yolo.data.utils import IMG_FORMATS, VID_FORMATS
-from yolov8.ultralytics.yolo.utils import DEFAULT_CONFIG, LOGGER, SETTINGS, callbacks, colorstr, ops
+# from yolov8.ultralytics.yolo.utils import DEFAULT_CONFIG, LOGGER, SETTINGS, callbacks, colorstr, ops
 from yolov8.ultralytics.yolo.utils.checks import check_file, check_imgsz, check_imshow, print_args, check_requirements
 from yolov8.ultralytics.yolo.utils.files import increment_path
 from yolov8.ultralytics.yolo.utils.torch_utils import select_device
 from yolov8.ultralytics.yolo.utils.ops import Profile, non_max_suppression, scale_boxes, process_mask, process_mask_native
 from yolov8.ultralytics.yolo.utils.plotting import Annotator, colors
+from yolov8.ultralytics.yolo.data.augment import LetterBox
 
 from trackers.multi_tracker_zoo import create_tracker
-from ultralytics.yolo.data.augment import LetterBox
 
-ai_path = str(Path.home()) + '/Documents/ai_utils'
-sys.path.append(ai_path)
 from ai_utils.detectors.DetectorInterface import DetectorInterface
-
-import pdb
 
 
 def parse_args(argv=None):
