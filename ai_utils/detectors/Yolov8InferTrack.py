@@ -73,7 +73,7 @@ def parse_args(argv=None):
     parser.add_argument('--dnn', action='store_true', help='use OpenCV DNN for ONNX inference')
     parser.add_argument('--vid-stride', type=int, default=1, help='video frame-rate stride')
     parser.add_argument('--retina-masks', default=True, help='whether to plot masks in native resolution')
-    opt = parser.parse_args()
+    opt, unknown = parser.parse_known_args()
     opt.imgsz *= 2 if len(opt.imgsz) == 1 else 1  # expand
     opt.tracking_config = Path(trackers.__file__[:-11] + opt.tracking_method + '/configs/' + opt.tracking_method + '.yaml')
     print_args(vars(opt))
