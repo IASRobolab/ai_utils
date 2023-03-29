@@ -50,7 +50,10 @@ class Yolov8Inference(DetectorInterface):
         inference_out = {}
         if len(results.boxes.cls.detach().cpu().numpy())!=0:            
             boxes = results.boxes.xyxy.detach().cpu().numpy()  
-            masks = results.masks.masks.detach().cpu().numpy()
+            try:
+              masks = results.masks.masks.detach().cpu().numpy()
+            except AttributeError:
+              masks =[]
             classes = results.boxes.cls.detach().cpu().numpy()
             scores = results.boxes.conf.detach().cpu().numpy()
             for idx, cls in enumerate(classes):
@@ -66,7 +69,10 @@ class Yolov8Inference(DetectorInterface):
                             inference_out[cls]['masks'] = []
                         inference_out[cls]['scores'].append(scores[idx])
                         inference_out[cls]['boxes'].append(boxes[idx].astype(int))
-                        inference_out[cls]['masks'].append(masks[idx])
+                        try:
+                          inference_out[cls]['masks'].append(masks[idx])
+                        except IndexError:
+                          continue
 
         return inference_out
 

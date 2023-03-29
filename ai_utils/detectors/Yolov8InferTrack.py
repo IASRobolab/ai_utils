@@ -52,7 +52,6 @@ from trackers.multi_tracker_zoo import create_tracker
 import trackers
 from ai_utils.detectors.DetectorInterface import DetectorInterface
 
-
 def parse_args(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument('--tracking-method', type=str, default='strongsort', help='strongsort, ocsort, bytetrack')
@@ -167,13 +166,14 @@ class Yolov8InferTrack(DetectorInterface):
                     
         ## Block of code for alligning the tracked objects with the detected masks. For each tracked objects we return the corresponding
         ## mask (the one which has the nearest distance between the bbox tracked and detected) detected in the current frame, if present.
-        detection_bboxs = det[:, :4].detach().cpu().numpy()
-        masks_track = []
-        outputs_track = []
-        if outputs is not None and len(outputs) > 0:
-          for out in outputs:
-            tracking_bbox = out[:4]
-            for idx, detection_bbox in enumerate(detection_bboxs):
+        if self.is_seg:
+          detection_bboxs = det[:, :4].detach().cpu().numpy()
+          masks_track = []
+          outputs_track = []
+          if outputs is not None and len(outputs) > 0:
+            for out in outputs:
+              tracking_bbox = out[:4]
+              for idx, detection_bbox in enumerate(detection_bboxs):
                 dist=np.linalg.norm(detection_bbox - tracking_bbox, axis=0)
                 if dist < 10: ## euclidean distance threshold chosen for bounding boxes overlapping between predictions and current detections  
                    masks_track.append(self.masks[idx].detach().cpu().numpy())
@@ -182,8 +182,10 @@ class Yolov8InferTrack(DetectorInterface):
                    else:
                      outputs_track=np.vstack((outputs_track, out))
                    break
+          return outputs_track, masks_track
         ##
-        return outputs_track, masks_track
+        else:
+          return outputs, None
         
         
     @torch.no_grad()
@@ -217,7 +219,7 @@ class Yolov8InferTrack(DetectorInterface):
             else:
                 p = non_max_suppression(preds, self.args.conf_thres, self.args.iou_thres, self.args.classes, self.args.agnostic_nms, max_det=self.args.max_det)
         inference, masks = self.output_formatting_and_display(p, im0s, im)
-        
+     
         inference_out = {}
         if len(inference) > 0: 
             for idx, cls in enumerate(inference[:,5]):
@@ -233,7 +235,9 @@ class Yolov8InferTrack(DetectorInterface):
                         inference_out[cls]['scores'].append(inference[idx][6])
                         inference_out[cls]['boxes'].append(inference[idx][0:4])
                         inference_out[cls]['id'].append(inference[idx][4])
-                        inference_out[cls]['masks'].append(masks[idx])
+                        if self.is_seg: 
+                          inference_out[cls]['masks'].append(masks[idx])
+                          
         
        
         return inference_out
