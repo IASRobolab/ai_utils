@@ -76,7 +76,14 @@ def parse_args(argv=None):
     parser.add_argument('--retina-masks', default=True, help='whether to plot masks in native resolution')
     opt = parser.parse_args()
     opt.imgsz *= 2 if len(opt.imgsz) == 1 else 1  # expand
+
+    for dirpath, dirnames, _ in os.walk(os.path.expanduser('~')):
+        for dirname in dirnames:
+            if dirname == "yolov8_tracking":
+                ROOT = Path(os.path.join(dirpath, dirname))
+                
     opt.tracking_config = ROOT / 'trackers' / opt.tracking_method / 'configs' / (opt.tracking_method + '.yaml')
+    
     print_args(vars(opt))
     return opt
     
