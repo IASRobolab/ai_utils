@@ -94,10 +94,24 @@ class Yolov8InferTrack(DetectorInterface):
         self.args.max_det = max_det
         self.return_img = return_img
         self.is_seg = '-seg' in str(model_weights)
+        self.is_engine = 'engine' in str(model_weights)
         self.args.yolo_weights = Path(model_weights)
         self.args.reid_weights = Path(reid_weights)
         self.model = AutoBackend(model_weights, device=self.device, dnn=self.args.dnn, fp16=self.args.half)
-        self.stride, self.names, self.pt = self.model.stride, self.model.names, self.model.pt
+        self.stride, self.pt = self.model.stride, self.model.pt
+        if self.is_engine:
+          # list of classes names in the case of a model pre-trained on COCO
+          self.names = [ 'person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light',
+           'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow',
+           'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee',
+           'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard',
+           'tennis racket', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple',
+           'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'couch',
+           'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone',
+           'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear',
+           'hair drier', 'toothbrush' ]
+        else:
+          self.names = self.model.names
         self.imgsz = check_imgsz(self.args.imgsz, stride=self.stride)  # check image size
         self.model.warmup(imgsz=(1 if self.pt or self.model.triton else 1, 3, *self.imgsz))  # warmup
         # Create as many strong sort instances as there are video sources
@@ -115,10 +129,14 @@ class Yolov8InferTrack(DetectorInterface):
         if det is not None and len(det):
                 if self.is_seg:
                     shape = im0.shape
+                    #pdb.set_trace()
                     # scale bbox first the crop masks
                     if self.args.retina_masks:
                         det[:, :4] = scale_boxes(im.shape[2:], det[:, :4], shape).round()  # rescale boxes to im0 size
-                        self.masks = process_mask_native(self.proto[0], det[:, 6:], det[:, :4], im0.shape[:2])  # HWC
+                        if self.is_engine: 
+                          self.masks = process_mask_native(self.proto, det[:, 6:], det[:, :4], im0.shape[:2])  # HWC
+                        else:
+                          self.masks = process_mask_native(self.proto[0], det[:, 6:], det[:, :4], im0.shape[:2])  # HWC
                     else:
                         self.masks = process_mask(self.proto[0], det[:, 6:], det[:, :4], im.shape[2:], upsample=True)  # HWC
                         det[:, :4] = scale_boxes(im.shape[2:], det[:, :4], shape).round()  # rescale boxes to im0 size
@@ -226,6 +244,7 @@ class Yolov8InferTrack(DetectorInterface):
                 p = non_max_suppression(preds, self.args.conf_thres, self.args.iou_thres, self.args.classes, self.args.agnostic_nms, max_det=self.args.max_det)
         
         if self.return_img:
+          
           inference, masks, im_yolo_out = self.output_formatting_and_display(p, im0s, im)
         else: 
           inference, masks = self.output_formatting_and_display(p, im0s, im)
