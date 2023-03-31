@@ -7,7 +7,7 @@ setup(
     version='1.0.0',
     packages=find_packages(),
     data_files=[],
-    install_requires=['setuptools', 'opencv-python', 'mediapipe', 'matplotlib', 'sklearn'],
+    install_requires=['setuptools', 'opencv-python', 'mediapipe', 'matplotlib', 'scikit-learn'],
     zip_safe=True,
     maintainer='Federico Rollo',
     maintainer_email='rollo.f96@gmail.com',

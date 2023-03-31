@@ -83,7 +83,7 @@ def parse_args(argv=None):
 
 class Yolov8InferTrack(DetectorInterface):
 
-    def __init__(self,  model_weights, reid_weights, display_img=False, score_threshold=0.5, max_det=15, classes_white_list=set(), argv=None):
+    def __init__(self,  model_weights, reid_weights, return_img=False, display_img=False, score_threshold=0.5, max_det=15, classes_white_list=set(), argv=None):
     
         DetectorInterface.__init__(self, display_img=display_img, score_threshold=score_threshold, classes_white_list=classes_white_list)
         
@@ -92,6 +92,7 @@ class Yolov8InferTrack(DetectorInterface):
         self.device = select_device(self.args.device)
         self.args.conf_thres = score_threshold
         self.args.max_det = max_det
+        self.return_img = return_img
         self.is_seg = '-seg' in str(model_weights)
         self.args.yolo_weights = Path(model_weights)
         self.args.reid_weights = Path(reid_weights)
@@ -147,13 +148,13 @@ class Yolov8InferTrack(DetectorInterface):
                         cls = output[5]
                         conf = output[6]
 
-                        if self.display_img:  # Add bbox/seg to image
-                            c = int(cls)  # integer class
-                            id = int(id)  # integer id
-                            label = None if self.args.hide_labels else (f'{id} {self.names[c]}' if self.args.hide_conf else \
-                                (f'{id} {conf:.2f}' if self.args.hide_class else f'{id} {self.names[c]} {conf:.2f}'))
-                            color = colors(c, True)
-                            annotator.box_label(bbox, label, color=color)
+                        #if self.display_img:  # Add bbox/seg to image
+                        c = int(cls)  # integer class
+                        id = int(id)  # integer id
+                        label = None if self.args.hide_labels else (f'{id} {self.names[c]}' if self.args.hide_conf else \
+                            (f'{id} {conf:.2f}' if self.args.hide_class else f'{id} {self.names[c]} {conf:.2f}'))
+                        color = colors(c, True)
+                        annotator.box_label(bbox, label, color=color)
                               
             # Stream results
             
@@ -182,10 +183,15 @@ class Yolov8InferTrack(DetectorInterface):
                    else:
                      outputs_track=np.vstack((outputs_track, out))
                    break
-          return outputs_track, masks_track
+         
         ##
         else:
-          return outputs, None
+          outputs_track = outputs
+          masks_track = None
+        if self.return_img:
+            return outputs_track, masks_track, im0
+        else:
+            return outputs_track, masks_track
         
         
     @torch.no_grad()
@@ -218,7 +224,11 @@ class Yolov8InferTrack(DetectorInterface):
                 self.proto = preds[1][-1]
             else:
                 p = non_max_suppression(preds, self.args.conf_thres, self.args.iou_thres, self.args.classes, self.args.agnostic_nms, max_det=self.args.max_det)
-        inference, masks = self.output_formatting_and_display(p, im0s, im)
+        
+        if self.return_img:
+          inference, masks, im_yolo_out = self.output_formatting_and_display(p, im0s, im)
+        else: 
+          inference, masks = self.output_formatting_and_display(p, im0s, im)
      
         inference_out = {}
         if len(inference) > 0: 
@@ -238,6 +248,7 @@ class Yolov8InferTrack(DetectorInterface):
                         if self.is_seg: 
                           inference_out[cls]['masks'].append(masks[idx])
                           
-        
-       
-        return inference_out
+        if self.return_img:
+          return inference_out, im_yolo_out
+        else:
+          return inference_out
