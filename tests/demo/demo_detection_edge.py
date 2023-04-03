@@ -24,13 +24,13 @@ import argparse
 
 
 if __name__ == '__main__':
-    #yolact_weights_new = str(Path.home()) + "/Desktop/yolact_edge_plus/weights/yolact_edge_plus_resnet50_box_penv_plenv_AI4M_79_800.pth"#yolact_edge_resnet50_54_800000.pth"
-    yolact_weights_new = str(Path.home()) + "/Downloads/yolact_edge_54_800000.pth"#yolact_edge_54_800000.pth"
+    
+    yolact_weights_new = str(Path.home()) + "/Downloads/yolact_edge_54_800000.pth"
     
     yolact_new = YolactEdgeInference(model_weights=yolact_weights_new, score_threshold=0.4, display_img=True)
 
 
-    camera = IntelRealsense(rgb_resolution=IntelRealsense.Resolution.HD)
+    camera = IntelRealsense(camera_resolution=IntelRealsense.Resolution.HD)
 
 
     while True:
@@ -40,11 +40,10 @@ if __name__ == '__main__':
         img = np.array(img)
         
 
-        #cv2.namedWindow("immagine", cv2.WINDOW_NORMAL)
-        #cv2.imshow("immagine", img)
+        
 
         yolact_infer = yolact_new.img_inference(img)
-        #pdb.set_trace()
+
         
         
         print(1/(time.time()-start_time))

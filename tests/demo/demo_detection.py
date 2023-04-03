@@ -29,25 +29,21 @@ parser.add_argument('--camera_type', default='REALSENSE', type=str,
 args = parser.parse_args()
 
 if __name__ == '__main__':
-    #yolact_weights_new = str(Path.home()) + "/Documents/yolact/weights/yolact_plus_resnet50_boxes_dynamic_69_980.pth"
+    
     yolact_weights_new ='/home/azunino/Documents/robotic_arms_vision/weights/yolact_plus_resnet50_54_800000.pth'
-    #yolact_weights_new ='/home/azunino/Documents/yolact/weights/yolact_plus_resnet50_adesubset_classes_58_20000.pth'
-#yolact_plus_resnet50_box_penv_plenv_AI4M_79_960.pth"
-    #
-    #yolact_weights_new = str(Path.home()) + "/Documents/robotic_arms_vision/weights/yolact_plus_resnet50_valve_39_520.pth"
+    
     yolact_new = YolactInference(model_weights=yolact_weights_new, score_threshold=0.5, display_img=True)
 
     if args.camera_type=='REALSENSE':
       camera = IntelRealsense(camera_resolution=IntelRealsense.Resolution.HD)
-      #camera = IntelRealsense(rgb_resolution=IntelRealsense.Resolution.HD, serial_number='023322062736' )
-      #camera = IntelRealsense(rgb_resolution=IntelRealsense.Resolution.HD, serial_number='049122251418' )
+      
     elif args.camera_type=='ZED':
-      camera = Zed(rgb_resolution=Zed.Resolution.HD)
+      camera = Zed(camera_resolution=Zed.Resolution.HD)
     else:
       sys.exit("Wrong camera type!")
-    prove = 0 #10000
+    prove = 0 
     somma = 0
-    #for i in range(prove):
+    
     while True:
         start_time = time.time()
         prove+=1

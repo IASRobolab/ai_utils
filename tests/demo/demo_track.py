@@ -17,14 +17,14 @@ import argparse
 if __name__ == '__main__':
     yolo_weights="/home/azunino/Downloads/yolov8l-seg.engine"
     reid_weights="/home/azunino/Documents/yolov8_tracking/weights/osnet_x0_25_msmt17.pt"
-    #yolact_weights_new = str(Path.home()) + "/Downloads/yolov8l-seg.pt"
+    
     yolo = Yolov8InferTrack(display_img=True, return_img=False, model_weights=yolo_weights, reid_weights=reid_weights)
 
     camera = IntelRealsense(camera_resolution=IntelRealsense.Resolution.HD)
 
-    prove = 0 #10000
+    prove = 0 
     somma = 0
-    #for i in range(prove):
+    
     while True:
         start_time = time.time()
         prove+=1

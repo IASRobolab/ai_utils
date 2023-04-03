@@ -24,15 +24,15 @@ import argparse
 
 
 if __name__ == '__main__':
-    #yolact_weights_new="/home/azunino/Downloads/Ade20k_validation_9classes/runs/segment/train7/weights/best.pt"
-    yolact_weights_new = str(Path.home()) + "/Downloads/yolov8x-seg.engine"
-    yolo = Yolov8Inference(model_weights=yolact_weights_new, score_threshold=0.5, display_img=True, verbose=False)
+    
+    yolo_weights = str(Path.home()) + "/Downloads/yolov8l-seg.pt"
+    yolo = Yolov8Inference(model_weights=yolo_weights, score_threshold=0.5, display_img=True, verbose=False)
 
     camera = IntelRealsense(camera_resolution=IntelRealsense.Resolution.HD)
 
     prove = 0 #10000
     somma = 0
-    #for i in range(prove):
+    
     while True:
         start_time = time.time()
         prove+=1

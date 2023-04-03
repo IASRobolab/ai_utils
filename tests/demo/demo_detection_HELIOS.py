@@ -30,35 +30,32 @@ parser.add_argument('--camera_type', default='ZED', type=str,
 args = parser.parse_args()
 
 if __name__ == '__main__':
-    yolact_weights_new = str(Path.home()) + "/Documents/robotic_arms_vision/weights/yolact_plus_resnet50_54_800000.pth"#yolact_plus_resnet50_drill_74_750.pth"#yolact_plus_resnet50_54_800000.pth"
-    #yolact_plus_resnet50_box_penv_plenv_AI4M_79_960.pth"
-    #
-    #yolact_weights_new = str(Path.home()) + "/Documents/robotic_arms_vision/weights/yolact_plus_resnet50_valve_39_520.pth"
+    yolact_weights_new = str(Path.home()) + "/Documents/robotic_arms_vision/weights/yolact_plus_resnet50_54_800000.pth"
+    
     yolact_new = YolactInference(model_weights=yolact_weights_new, score_threshold=0.8, display_img=True)
 
     camera=Helios()
     intrinsics = camera.get_intrinsics()
     intrinsic = o3d.camera.PinholeCameraIntrinsic()
     intrinsic.set_intrinsics(intrinsics['width'], intrinsics['height'], intrinsics['fx'], intrinsics['fy'], intrinsics['px'], intrinsics['py'])
-    prove = 0 #10000
+    prove = 0 
     somma = 0
-    #for i in range(prove):
+   
     while True:
         start_time = time.time()
         prove+=1
-        #img = camera.get_rgb()
+        
         img, depth=camera.get_frames()
         img = np.array(img)
         
 
-        #cv2.namedWindow("immagine", cv2.WINDOW_NORMAL)
-        #cv2.imshow("immagine", img)
+        
         img=np.stack((img,)*3, axis=-1)
         yolact_infer = yolact_new.img_inference(img)
         masks = yolact_infer["person"]['masks']
         rgb_new = img.copy()
         depth = depth * masks[0]
-        #pdb.set_trace()
+   
         for i in range(3):
           rgb_new[:,:,i] = rgb_new[:,:,i] * masks[0]
         depth = o3d.geometry.Image(depth)
