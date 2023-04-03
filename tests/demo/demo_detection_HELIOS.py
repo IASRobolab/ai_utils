@@ -15,7 +15,7 @@ sys.path.append(ai_path)
 
 from camera_utils.cameras.Helios import Helios
 
-from ai_utils.YolactInference import YolactInference
+from ai_utils.detectors.YolactInference import YolactInference
 
 import numpy as np
 import cv2
