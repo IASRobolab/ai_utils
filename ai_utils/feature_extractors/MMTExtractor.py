@@ -93,6 +93,7 @@ class MMTExtractor(FeatureExtractorInterface):
 
         boxes = detector_inference[self.target_class]['boxes']
         masks = detector_inference[self.target_class]['masks']
+        # TODO add id in return feature 
 
         images = []
 
