@@ -74,7 +74,7 @@ class Yolov8Inference(DetectorInterface):
                             inference_out[cls]['masks'] = []
                         inference_out[cls]['scores'].append(scores[idx])
                         inference_out[cls]['boxes'].append(boxes[idx].astype(int))
-                        inference_out[cls]['id'].append(-1)
+                        inference_out[cls]['id'].append(-1) # the id is set to -1 here, because we do not perform tracking. We make the dictionary uniform between the detectors
                         try: 
                           inference_out[cls]['masks'].append(masks[idx])
                         except IndexError:
