@@ -83,7 +83,7 @@ color_cache = defaultdict(lambda: {})
 
 class YolactInference(DetectorInterface):
 
-    def __init__(self, model_weights, display_img=False, score_threshold=0.5, top_k=15, classes_white_list=set(), argv=None):
+    def __init__(self, model_weights, display_img=False, return_img=False, score_threshold=0.5, top_k=15, classes_white_list=set(), argv=None):
         '''
         Yolact detector used to classify, detect and segment objects on an image
         :param display_img: boolean used to return the results plotted on image
@@ -98,7 +98,7 @@ class YolactInference(DetectorInterface):
         
         self.args = parse_args(argv)
         self.top_k = top_k
-
+        self.return_img = return_img
         model_path = SavePath.from_str(model_weights)
         self.args.config = model_path.model_name + '_config'
         set_cfg(self.args.config)
@@ -168,7 +168,7 @@ class YolactInference(DetectorInterface):
             else:
                 inference = [classes, scores, boxes, masks_out]
 
-        if self.display_img:
+        if self.display_img or self.return_img:
 
             num_dets_to_consider = min(self.top_k, classes.shape[0])
             for j in range(num_dets_to_consider):
@@ -271,13 +271,16 @@ class YolactInference(DetectorInterface):
                                     font_thickness,
                                     cv2.LINE_AA)
 
-            cv2.namedWindow("Yolact", cv2.WINDOW_NORMAL)
-            cv2.imshow("Yolact", img_numpy)
+            if self.display_img:
+              cv2.namedWindow("Yolact", cv2.WINDOW_NORMAL)
+              cv2.imshow("Yolact", img_numpy)
 
-            if cv2.waitKey(1) == ord('q'):
-                print("Closed Yolact Image Viewer.")
-                exit(0)
+              if cv2.waitKey(1) == ord('q'):
+                  print("Closed Yolact Image Viewer.")
+                  exit(0)
 
+        if self.return_img:
+            return inference, img_numpy
         return inference
 
     def img_inference(self, rgb):
@@ -294,7 +297,10 @@ class YolactInference(DetectorInterface):
         preds = self.net(batch)
         
         with torch.no_grad():
-            inference = self.output_formatting_and_display(preds, frame)
+            if self.return_img:
+                inference, yolact_img = self.output_formatting_and_display(preds, frame)
+            else: 
+                inference = self.output_formatting_and_display(preds, frame)
 
         inference_out = {}
         
@@ -309,8 +315,12 @@ class YolactInference(DetectorInterface):
                             inference_out[cls]['scores'] = []
                             inference_out[cls]['boxes'] = []
                             inference_out[cls]['masks'] = []
+                            inference_out[cls]['id'] = [] 
                         inference_out[cls]['scores'].append(inference[1][idx])
                         inference_out[cls]['boxes'].append(inference[2][idx])
                         inference_out[cls]['masks'].append(inference[3][idx])
+                        inference_out[cls]['id'].append(-1) # the id is set to -1 here, because we do not perform tracking. We make the dictionary uniform between the detectors
 
+        if self.return_img:
+            return inference_out, yolact_img
         return inference_out

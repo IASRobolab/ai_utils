@@ -343,9 +343,11 @@ class YolactEdgeInference(DetectorInterface):
                             inference_out[cls]['scores'] = []
                             inference_out[cls]['boxes'] = []
                             inference_out[cls]['masks'] = []
+                            inference_out[cls]['id'] = [] 
                         inference_out[cls]['scores'].append(inference[1][idx])
                         inference_out[cls]['boxes'].append(inference[2][idx])
                         inference_out[cls]['masks'].append(inference[3][idx])
+                        inference_out[cls]['id'].append(-1) # the id is set to -1 here, because we do not perform tracking. We make the dictionary uniform between the detectors
 
         if self.return_img:
             return inference_out, yolact_img
