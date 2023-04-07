@@ -23,13 +23,15 @@
 ---------------------------------------------------------------------------------------------------------------------------------'''
 from ai_utils.detectors.DetectorInterface import DetectorInterface
 from ultralytics.yolo.engine.model import YOLO
+
 class Yolov8Inference(DetectorInterface):
 
-    def __init__(self, model_weights, display_img=False, score_threshold=0.5, classes_white_list=set(), verbose=False) -> None:
+    def __init__(self, model_weights, display_img=False, return_img=False, score_threshold=0.5, classes_white_list=set(), verbose=False) -> None:
         DetectorInterface.__init__(self, display_img=display_img, score_threshold=score_threshold, classes_white_list=classes_white_list)
 
         self.model = YOLO(model_weights)
         self.verbose = verbose
+        self.return_img = return_img
         if '.engine' in model_weights:
           # list of classes names in the case of a model pre-trained on COCO
           self.class_names = [ 'person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light',
@@ -45,7 +47,9 @@ class Yolov8Inference(DetectorInterface):
         else:
           self.class_names = self.model.names
     def img_inference(self, rgb):
-        results = self.model.predict(rgb, show=self.display_img, verbose=self.verbose, retina_masks=True)
+        #results = self.model.predict(rgb, show=self.display_img, verbose=self.verbose, retina_masks=True)
+        results = self.model(rgb, show=self.display_img, verbose=self.verbose, retina_masks=True, conf=self.score_threshold)
+        im_yolo_out = results[0].plot()
         results = list(results)[0]
         inference_out = {}
         if len(results.boxes.cls.detach().cpu().numpy())!=0:            
@@ -66,13 +70,18 @@ class Yolov8Inference(DetectorInterface):
                             inference_out[cls] = {}
                             inference_out[cls]['scores'] = []
                             inference_out[cls]['boxes'] = []
+                            inference_out[cls]['id'] = []
                             inference_out[cls]['masks'] = []
                         inference_out[cls]['scores'].append(scores[idx])
                         inference_out[cls]['boxes'].append(boxes[idx].astype(int))
-                        try:
+                        inference_out[cls]['id'].append(-1) # the id is set to -1 here, because we do not perform tracking. We make the dictionary uniform between the detectors
+                        try: 
                           inference_out[cls]['masks'].append(masks[idx])
                         except IndexError:
-                          continue
+                          inference_out[cls]['masks'].append([]) # if the model does not provide masks we append empty list
 
-        return inference_out
+        if self.return_img:
+          return inference_out, im_yolo_out
+        else:
+          return inference_out
 
