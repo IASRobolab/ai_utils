@@ -23,9 +23,14 @@
 class FeatureExtractorInterface:
 
     def __init__(self, target_class) -> None:
-        self.target_class = target_class
+        self.set_target_class(target_class)
 
 
     def get_features(self, image, detector_inference):
         raise NotImplementedError
+
+    
+    def set_target_class(self, target_class):
+        self.target_class = target_class
+
 
