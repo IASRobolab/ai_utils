@@ -91,9 +91,10 @@ class MMTExtractor(FeatureExtractorInterface):
         if not self.target_class in detector_inference.keys():
             return None
 
-        boxes = detector_inference[self.target_class]['boxes']
-        masks = detector_inference[self.target_class]['masks']
-        # TODO add id in return feature 
+        target_class_inference = detector_inference[self.target_class]
+        boxes = target_class_inference['boxes']
+        masks = target_class_inference['masks']
+        ids   = target_class_inference['id']
 
         images = []
 
@@ -104,9 +105,8 @@ class MMTExtractor(FeatureExtractorInterface):
             image_transformed = self.transform(
                 torch.from_numpy(rgb_new[boxes[id][1]:boxes[id][3], boxes[id][0]:boxes[id][2], :]).unsqueeze(
                     0).cuda().float())
-            images.append(image_transformed[0])
+            images.append(image_transformed[0].cuda().float())
 
-        images = [images.cuda().float() for images in images]
         images = torch.stack(images, 0)
         # PASS THE IMAGES INSIDE THE EXTERNAL NETWORK
         features = self.model_REID(images).data.cpu()
