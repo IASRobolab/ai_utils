@@ -266,6 +266,8 @@ class Yolov8InferTrack(DetectorInterface):
                         inference_out[cls]['id'].append(inference[idx][4])
                         if self.is_seg: 
                           inference_out[cls]['masks'].append(masks[idx])
+                        else:
+                          inference_out[cls]['masks'].append([]) # if the model does not provide masks we append empty list
                           
         if self.return_img:
           return inference_out, im_yolo_out

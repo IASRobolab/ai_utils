@@ -112,4 +112,4 @@ class MMTExtractor(FeatureExtractorInterface):
         features = self.model_REID(images).data.cpu()
         #self.model_REID(img_transformed.cuda()).data.cpu()[0].numpy()
     
-        return features
+        return [ids, features]
