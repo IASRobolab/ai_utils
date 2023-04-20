@@ -55,7 +55,7 @@ class Yolov8Inference(DetectorInterface):
         if len(results.boxes.cls.detach().cpu().numpy())!=0:            
             boxes = results.boxes.xyxy.detach().cpu().numpy()  
             try:
-              masks = results.masks.masks.detach().cpu().numpy()
+              masks = results.masks.data.detach().cpu().numpy()
             except AttributeError:
               masks =[]
             classes = results.boxes.cls.detach().cpu().numpy()
