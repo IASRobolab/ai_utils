@@ -21,6 +21,7 @@
 # You should have received a copy of the GNU General Public License. If not, see http://www.gnu.org/licenses/
 ---------------------------------------------------------------------------------------------------------------------------------'''
 from ai_utils.feature_extractors.FeatureExtractorInterface import FeatureExtractorInterface
+from ai_utils.feature_extractors.FeatureExtractorOutput import FeatureExtractorOutput
 
 from mmt import models
 from mmt.utils.serialization import load_checkpoint, copy_state_dict
@@ -111,5 +112,8 @@ class MMTExtractor(FeatureExtractorInterface):
         # PASS THE IMAGES INSIDE THE EXTERNAL NETWORK
         features = self.model_REID(images).data.cpu()
         #self.model_REID(img_transformed.cuda()).data.cpu()[0].numpy()
+        # TODO return in numpy or in torch? 
     
-        return [ids, features]
+        feature_out = FeatureExtractorOutput(features, boxes, masks, ids)
+        
+        return feature_out
