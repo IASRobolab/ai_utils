@@ -56,8 +56,9 @@ class DetectorOutput:
 
 
     def get_detected_objects_by_class(self, cls):
-        return self.detected_objects[cls]
-
+        if cls in self.detected_objects.keys():
+            return self.detected_objects[cls]
+        return None
     
     def get_detected_object_by_id(self, id, cls=None):
 
