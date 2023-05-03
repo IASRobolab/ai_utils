@@ -51,225 +51,226 @@ from yolov8.ultralytics.yolo.data.augment import LetterBox
 from trackers.multi_tracker_zoo import create_tracker
 import trackers
 from ai_utils.detectors.DetectorInterface import DetectorInterface
+from ai_utils.detectors.DetectorOutput import DetectorOutput
 
 def parse_args(argv=None):
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--tracking-method', type=str, default='strongsort', help='strongsort, ocsort, bytetrack')
-    parser.add_argument('--tracking-config', type=Path, default=None)
-    parser.add_argument('--source', type=str, default='0', help='file/dir/URL/glob, 0 for webcam')  
-    parser.add_argument('--imgsz', '--img', '--img-size', nargs='+', type=int, default=[640], help='inference size h,w')
-    parser.add_argument('--iou-thres', type=float, default=0.5, help='NMS IoU threshold')
-    parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
-    # class 0 is person, 1 is bycicle, 2 is car... 79 is oven
-    parser.add_argument('--classes', nargs='+', type=int, help='filter by class: --classes 0, or --classes 0 2 3')
-    parser.add_argument('--agnostic-nms', action='store_true', help='class-agnostic NMS')
-    parser.add_argument('--augment', action='store_true', help='augmented inference')
-    parser.add_argument('--line-thickness', default=2, type=int, help='bounding box thickness (pixels)')
-    parser.add_argument('--hide-labels', default=False, action='store_true', help='hide labels')
-    parser.add_argument('--hide-conf', default=False, action='store_true', help='hide confidences')
-    parser.add_argument('--hide-class', default=False, action='store_true', help='hide IDs')
-    parser.add_argument('--half', action='store_true', help='use FP16 half-precision inference')
-    parser.add_argument('--dnn', action='store_true', help='use OpenCV DNN for ONNX inference')
-    parser.add_argument('--vid-stride', type=int, default=1, help='video frame-rate stride')
-    parser.add_argument('--retina-masks', default=True, help='whether to plot masks in native resolution')
-    opt, unknown = parser.parse_known_args()
-    opt.imgsz *= 2 if len(opt.imgsz) == 1 else 1  # expand
-    opt.tracking_config = Path(trackers.__file__[:-11] + opt.tracking_method + '/configs/' + opt.tracking_method + '.yaml')
-    print_args(vars(opt))
-    return opt
+  parser = argparse.ArgumentParser()
+  parser.add_argument('--tracking-method', type=str, default='strongsort', help='strongsort, ocsort, bytetrack')
+  parser.add_argument('--tracking-config', type=Path, default=None)
+  parser.add_argument('--source', type=str, default='0', help='file/dir/URL/glob, 0 for webcam')  
+  parser.add_argument('--imgsz', '--img', '--img-size', nargs='+', type=int, default=[640], help='inference size h,w')
+  parser.add_argument('--iou-thres', type=float, default=0.5, help='NMS IoU threshold')
+  parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
+  # class 0 is person, 1 is bycicle, 2 is car... 79 is oven
+  parser.add_argument('--classes', nargs='+', type=int, help='filter by class: --classes 0, or --classes 0 2 3')
+  parser.add_argument('--agnostic-nms', action='store_true', help='class-agnostic NMS')
+  parser.add_argument('--augment', action='store_true', help='augmented inference')
+  parser.add_argument('--line-thickness', default=2, type=int, help='bounding box thickness (pixels)')
+  parser.add_argument('--hide-labels', default=False, action='store_true', help='hide labels')
+  parser.add_argument('--hide-conf', default=False, action='store_true', help='hide confidences')
+  parser.add_argument('--hide-class', default=False, action='store_true', help='hide IDs')
+  parser.add_argument('--half', action='store_true', help='use FP16 half-precision inference')
+  parser.add_argument('--dnn', action='store_true', help='use OpenCV DNN for ONNX inference')
+  parser.add_argument('--vid-stride', type=int, default=1, help='video frame-rate stride')
+  parser.add_argument('--retina-masks', default=True, help='whether to plot masks in native resolution')
+  opt, unknown = parser.parse_known_args()
+  opt.imgsz *= 2 if len(opt.imgsz) == 1 else 1  # expand
+  opt.tracking_config = Path(trackers.__file__[:-11] + opt.tracking_method + '/configs/' + opt.tracking_method + '.yaml')
+  print_args(vars(opt))
+  return opt
     
 
 
 
 class Yolov8InferTrack(DetectorInterface):
 
-    def __init__(self,  model_weights, reid_weights, return_img=False, display_img=False, score_threshold=0.5, max_det=15, classes_white_list=set(), argv=None):
+  def __init__(self,  model_weights, reid_weights, return_img=False, display_img=False, score_threshold=0.5, max_det=15, classes_white_list=set(), argv=None):
+  
+    DetectorInterface.__init__(self, display_img=display_img, score_threshold=score_threshold, classes_white_list=classes_white_list)
     
-        DetectorInterface.__init__(self, display_img=display_img, score_threshold=score_threshold, classes_white_list=classes_white_list)
-        
-        self.args = parse_args(argv)
-        # Load model
-        self.device = select_device(self.args.device)
-        self.args.conf_thres = score_threshold
-        self.args.max_det = max_det
-        self.return_img = return_img
-        self.is_seg = '-seg' in str(model_weights)
-        self.is_engine = 'engine' in str(model_weights)
-        self.args.yolo_weights = Path(model_weights)
-        self.args.reid_weights = Path(reid_weights)
-        self.model = AutoBackend(model_weights, device=self.device, dnn=self.args.dnn, fp16=self.args.half)
-        self.stride, self.pt = self.model.stride, self.model.pt
-        if self.is_engine:
-          # list of classes names in the case of a model pre-trained on COCO
-          self.names = [ 'person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light',
-           'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow',
-           'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee',
-           'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard',
-           'tennis racket', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple',
-           'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'couch',
-           'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone',
-           'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear',
-           'hair drier', 'toothbrush' ]
-        else:
-          self.names = self.model.names
-        self.imgsz = check_imgsz(self.args.imgsz, stride=self.stride)  # check image size
-        self.model.warmup(imgsz=(1 if self.pt or self.model.triton else 1, 3, *self.imgsz))  # warmup
-        # Create as many strong sort instances as there are video sources
-        self.tracker = create_tracker(self.args.tracking_method, self.args.tracking_config, self.args.reid_weights, self.device, self.args.half)
+    self.args = parse_args(argv)
+    # Load model
+    self.device = select_device(self.args.device)
+    self.args.conf_thres = score_threshold
+    self.args.max_det = max_det
+    self.return_img = return_img
+    self.is_seg = '-seg' in str(model_weights)
+    self.is_engine = 'engine' in str(model_weights)
+    self.args.yolo_weights = Path(model_weights)
+    self.args.reid_weights = Path(reid_weights)
+    self.model = AutoBackend(model_weights, device=self.device, dnn=self.args.dnn, fp16=self.args.half)
+    self.stride, self.pt = self.model.stride, self.model.pt
+    if self.is_engine:
+      # list of classes names in the case of a model pre-trained on COCO
+      self.names = [ 'person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light',
+        'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow',
+        'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee',
+        'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard',
+        'tennis racket', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple',
+        'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'couch',
+        'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone',
+        'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear',
+        'hair drier', 'toothbrush' ]
+    else:
+      self.names = self.model.names
+    self.imgsz = check_imgsz(self.args.imgsz, stride=self.stride)  # check image size
+    self.model.warmup(imgsz=(1 if self.pt or self.model.triton else 1, 3, *self.imgsz))  # warmup
+    # Create as many strong sort instances as there are video sources
+    self.tracker = create_tracker(self.args.tracking_method, self.args.tracking_config, self.args.reid_weights, self.device, self.args.half)
 
 
-    @torch.no_grad()
-    def output_formatting_and_display(self, dets_out, im0s, im):
-        
-        det = dets_out[0]
-        outputs = None
-        im0 = im0s.copy()
-        annotator = Annotator(im0, line_width=self.args.line_thickness, example=str(self.names))
-   
-        if det is not None and len(det):
-                if self.is_seg:
-                    shape = im0.shape
-                    #pdb.set_trace()
-                    # scale bbox first the crop masks
-                    if self.args.retina_masks:
-                        det[:, :4] = scale_boxes(im.shape[2:], det[:, :4], shape).round()  # rescale boxes to im0 size
-                        if self.is_engine: 
-                          self.masks = process_mask_native(self.proto, det[:, 6:], det[:, :4], im0.shape[:2])  # HWC
-                        else:
-                          self.masks = process_mask_native(self.proto[0], det[:, 6:], det[:, :4], im0.shape[:2])  # HWC
-                    else:
-                        self.masks = process_mask(self.proto[0], det[:, 6:], det[:, :4], im.shape[2:], upsample=True)  # HWC
-                        det[:, :4] = scale_boxes(im.shape[2:], det[:, :4], shape).round()  # rescale boxes to im0 size
-                else:
-                    det[:, :4] = scale_boxes(im.shape[2:], det[:, :4], im0.shape).round()  # rescale boxes to im0 size
-                    
-                # pass detections to strongsort
-                with self.dt[3]:
-                    outputs = self.tracker.update(det.cpu(), im0)
-                
-                # draw boxes for visualization
-                if len(outputs) > 0:
-                    
-                    if self.is_seg:
-                        # Mask plotting
-                        annotator.masks(
-                            self.masks,
-                            colors=[colors(x, True) for x in det[:, 5]],
-                            im_gpu=torch.as_tensor(im0, dtype=torch.float16).to(self.device).permute(2, 0, 1).flip(0).contiguous() /
-                            255 if self.args.retina_masks else im[0]
-                        )
-                     
-                    for j, (output) in enumerate(outputs):
-                        
-                        bbox = output[0:4]
-                        id = output[4]
-                        cls = output[5]
-                        conf = output[6]
+  @torch.no_grad()
+  def output_formatting_and_display(self, dets_out, im0s, im):
+    
+    det = dets_out[0]
+    outputs = None
+    im0 = im0s.copy()
+    annotator = Annotator(im0, line_width=self.args.line_thickness, example=str(self.names))
 
-                        #if self.display_img:  # Add bbox/seg to image
-                        c = int(cls)  # integer class
-                        id = int(id)  # integer id
-                        label = None if self.args.hide_labels else (f'{id} {self.names[c]}' if self.args.hide_conf else \
-                            (f'{id} {conf:.2f}' if self.args.hide_class else f'{id} {self.names[c]} {conf:.2f}'))
-                        color = colors(c, True)
-                        annotator.box_label(bbox, label, color=color)
-                              
-            # Stream results
-            
-        if self.display_img:
-                im0 = annotator.result()
-                cv2.namedWindow("YOLO TRACKING", cv2.WINDOW_NORMAL)
-                cv2.imshow('YOLO TRACKING', im0)
-                if cv2.waitKey(1) == ord('q'):  # 1 millisecond
-                    exit()
-                    
-        ## Block of code for alligning the tracked objects with the detected masks. For each tracked objects we return the corresponding
-        ## mask (the one which has the nearest distance between the bbox tracked and detected) detected in the current frame, if present.
-        if self.is_seg:
-          detection_bboxs = det[:, :4].detach().cpu().numpy()
-          masks_track = []
-          outputs_track = []
-          if outputs is not None and len(outputs) > 0:
-            for out in outputs:
-              tracking_bbox = out[:4]
-              for idx, detection_bbox in enumerate(detection_bboxs):
-                dist=np.linalg.norm(detection_bbox - tracking_bbox, axis=0)
-                if dist < 10: ## euclidean distance threshold chosen for bounding boxes overlapping between predictions and current detections  
-                   masks_track.append(self.masks[idx].detach().cpu().numpy())
-                   if not len(outputs_track):
-                     outputs_track = np.expand_dims(out, axis=0)
-                   else:
-                     outputs_track=np.vstack((outputs_track, out))
-                   break
-         
-        ##
-        else:
-          outputs_track = outputs
-          masks_track = None
-        if self.return_img:
-            return outputs_track, masks_track, im0
-        else:
-            return outputs_track, masks_track
-        
-        
-    @torch.no_grad()
-    def img_inference(self, rgb):
-        
-        self.dt = (Profile(), Profile(), Profile(), Profile())
-        im0s=rgb
-        im=np.stack(LetterBox(self.imgsz, self.pt, stride=self.stride)(image=im0s))
-        if len(im.shape) == 3:
-                im = im[None]  # expand for batch dim
-        
-        im = im[..., ::-1].transpose((0, 3, 1, 2))  # BGR to RGB, BHWC to BCHW
-        im = np.ascontiguousarray(im)  # contiguous
-        with self.dt[0]:
-            im = torch.from_numpy(im).to(self.device)
-            im = im.half() if self.args.half else im.float()  # uint8 to fp16/32
-            im /= 255.0  # 0 - 255 to 0.0 - 1.0
-            if len(im.shape) == 3:
-                im = im[None]  # expand for batch dim
-
-        # Inference
-        with self.dt[1]:
-            preds = self.model(im, augment=self.args.augment, visualize=False)
-
-        # Apply NMS
-        with self.dt[2]:
+    if det is not None and len(det):
             if self.is_seg:
-                self.masks = []
-                p = non_max_suppression(preds[0], self.args.conf_thres, self.args.iou_thres, self.args.classes, self.args.agnostic_nms, max_det=self.args.max_det, nm=32)
-                self.proto = preds[1][-1]
+                shape = im0.shape
+                #pdb.set_trace()
+                # scale bbox first the crop masks
+                if self.args.retina_masks:
+                    det[:, :4] = scale_boxes(im.shape[2:], det[:, :4], shape).round()  # rescale boxes to im0 size
+                    if self.is_engine: 
+                      self.masks = process_mask_native(self.proto, det[:, 6:], det[:, :4], im0.shape[:2])  # HWC
+                    else:
+                      self.masks = process_mask_native(self.proto[0], det[:, 6:], det[:, :4], im0.shape[:2])  # HWC
+                else:
+                    self.masks = process_mask(self.proto[0], det[:, 6:], det[:, :4], im.shape[2:], upsample=True)  # HWC
+                    det[:, :4] = scale_boxes(im.shape[2:], det[:, :4], shape).round()  # rescale boxes to im0 size
             else:
-                p = non_max_suppression(preds, self.args.conf_thres, self.args.iou_thres, self.args.classes, self.args.agnostic_nms, max_det=self.args.max_det)
-        
-        if self.return_img:
-          
-          inference, masks, im_yolo_out = self.output_formatting_and_display(p, im0s, im)
-        else: 
-          inference, masks = self.output_formatting_and_display(p, im0s, im)
-     
-        inference_out = {}
-        if len(inference) > 0: 
-            for idx, cls in enumerate(inference[:,5]):
-                cls = self.names[int(cls)]
-                # expression which evaluates if self.classes_white_list is empty OR the current class is in the white list
-                if not self.classes_white_list or cls in self.classes_white_list:
-                        if cls not in inference_out.keys():
-                            inference_out[cls] = {}
-                            inference_out[cls]['scores'] = []
-                            inference_out[cls]['boxes'] = []
-                            inference_out[cls]['id'] = []
-                            inference_out[cls]['masks'] = []
-                        inference_out[cls]['scores'].append(inference[idx][6])
-                        inference_out[cls]['boxes'].append(inference[idx][0:4])
-                        inference_out[cls]['id'].append(inference[idx][4])
-                        if self.is_seg: 
-                          inference_out[cls]['masks'].append(masks[idx])
-                        else:
-                          inference_out[cls]['masks'].append([]) # if the model does not provide masks we append empty list
+                det[:, :4] = scale_boxes(im.shape[2:], det[:, :4], im0.shape).round()  # rescale boxes to im0 size
+                
+            # pass detections to strongsort
+            with self.dt[3]:
+                outputs = self.tracker.update(det.cpu(), im0)
+            
+            # draw boxes for visualization
+            if len(outputs) > 0:
+                
+                if self.is_seg:
+                    # Mask plotting
+                    annotator.masks(
+                        self.masks,
+                        colors=[colors(x, True) for x in det[:, 5]],
+                        im_gpu=torch.as_tensor(im0, dtype=torch.float16).to(self.device).permute(2, 0, 1).flip(0).contiguous() /
+                        255 if self.args.retina_masks else im[0]
+                    )
+                  
+                for j, (output) in enumerate(outputs):
+                    
+                    bbox = output[0:4]
+                    id = output[4]
+                    cls = output[5]
+                    conf = output[6]
+
+                    #if self.display_img:  # Add bbox/seg to image
+                    c = int(cls)  # integer class
+                    id = int(id)  # integer id
+                    label = None if self.args.hide_labels else (f'{id} {self.names[c]}' if self.args.hide_conf else \
+                        (f'{id} {conf:.2f}' if self.args.hide_class else f'{id} {self.names[c]} {conf:.2f}'))
+                    color = colors(c, True)
+                    annotator.box_label(bbox, label, color=color)
                           
-        if self.return_img:
-          return inference_out, im_yolo_out
+        # Stream results
+        
+    if self.display_img:
+            im0 = annotator.result()
+            cv2.namedWindow("YOLO TRACKING", cv2.WINDOW_NORMAL)
+            cv2.imshow('YOLO TRACKING', im0)
+            if cv2.waitKey(1) == ord('q'):  # 1 millisecond
+                exit()
+                
+    ## Block of code for alligning the tracked objects with the detected masks. For each tracked objects we return the corresponding
+    ## mask (the one which has the nearest distance between the bbox tracked and detected) detected in the current frame, if present.
+    if self.is_seg:
+      detection_bboxs = det[:, :4].detach().cpu().numpy()
+      masks_track = []
+      outputs_track = []
+      if outputs is not None and len(outputs) > 0:
+        for out in outputs:
+          tracking_bbox = out[:4]
+          for idx, detection_bbox in enumerate(detection_bboxs):
+            dist=np.linalg.norm(detection_bbox - tracking_bbox, axis=0)
+            if dist < 10: ## euclidean distance threshold chosen for bounding boxes overlapping between predictions and current detections  
+                masks_track.append(self.masks[idx].detach().cpu().numpy())
+                if not len(outputs_track):
+                  outputs_track = np.expand_dims(out, axis=0)
+                else:
+                  outputs_track=np.vstack((outputs_track, out))
+                break
+      
+    ##
+    else:
+      outputs_track = outputs
+      masks_track = None
+    if self.return_img:
+        return outputs_track, masks_track, im0
+    else:
+        return outputs_track, masks_track
+    
+      
+  @torch.no_grad()
+  def img_inference(self, rgb):
+    
+    self.dt = (Profile(), Profile(), Profile(), Profile())
+    im0s=rgb
+    im=np.stack(LetterBox(self.imgsz, self.pt, stride=self.stride)(image=im0s))
+    if len(im.shape) == 3:
+            im = im[None]  # expand for batch dim
+    
+    im = im[..., ::-1].transpose((0, 3, 1, 2))  # BGR to RGB, BHWC to BCHW
+    im = np.ascontiguousarray(im)  # contiguous
+    with self.dt[0]:
+        im = torch.from_numpy(im).to(self.device)
+        im = im.half() if self.args.half else im.float()  # uint8 to fp16/32
+        im /= 255.0  # 0 - 255 to 0.0 - 1.0
+        if len(im.shape) == 3:
+            im = im[None]  # expand for batch dim
+
+    # Inference
+    with self.dt[1]:
+        preds = self.model(im, augment=self.args.augment, visualize=False)
+
+    # Apply NMS
+    with self.dt[2]:
+        if self.is_seg:
+            self.masks = []
+            p = non_max_suppression(preds[0], self.args.conf_thres, self.args.iou_thres, self.args.classes, self.args.agnostic_nms, max_det=self.args.max_det, nm=32)
+            self.proto = preds[1][-1]
         else:
-          return inference_out
+            p = non_max_suppression(preds, self.args.conf_thres, self.args.iou_thres, self.args.classes, self.args.agnostic_nms, max_det=self.args.max_det)
+    
+    if self.return_img:
+      inference, masks, im_yolo_out = self.output_formatting_and_display(p, im0s, im)
+    else: 
+      inference, masks = self.output_formatting_and_display(p, im0s, im)
+
+
+    bboxes = []
+    ids = []
+    scores = []
+    classes = []
+    if len(inference) > 0: 
+      for idx, cls in enumerate(inference[:,5]):
+        cls = self.names[int(cls)]
+        # expression which evaluates if self.classes_white_list is empty OR the current class is in the white list
+        if not self.classes_white_list or cls in self.classes_white_list:
+          classes.append(cls)
+          scores.append(inference[idx][6])
+          bboxes.append(inference[idx][0:4])
+          ids.append(inference[idx][4])
+
+    if not self.is_seg: 
+      masks = None
+
+    detector_output : DetectorOutput
+    detector_output = DetectorOutput(classes, bboxes, scores, masks, ids)
+
+    if self.return_img:
+      return detector_output, im_yolo_out
+    else:
+      return detector_output
