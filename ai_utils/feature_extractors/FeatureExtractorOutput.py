@@ -20,25 +20,29 @@
 #
 # You should have received a copy of the GNU General Public License. If not, see http://www.gnu.org/licenses/
 ---------------------------------------------------------------------------------------------------------------------------------'''
+from ai_utils.detectors.DetectorOutput import DetectedObject
+
 class FeatureObject:
 
-    def __init__(self, id, feature, bbox, mask) -> None:
-        # TODO put detectorOutputInterface? or better use another initializer to initialize with another init
+    def __init__(self, id, feature, bbox, score, mask) -> None:
         self.id = id
         self.feature = feature
         self.bbox = bbox
+        self.score = score
         self.mask = mask
+    
+    @classmethod
+    def init_by_detector(self, feature, detected_object: DetectedObject) -> None:
+        return self(detected_object.idx, feature, detected_object.bbox, detected_object.score, detected_object.mask)
     
 
 class FeatureExtractorOutput:
 
-    def __init__(self, features: list, bboxes: list, masks: list, ids = None) -> None:
-        if not ids:
-            ids = [-1]*len(features)
+    def __init__(self, features: list, detected_objects: list) -> None:
 
         self.features_objects = []
         for idx in range(len(features)):
-            feat_obj = FeatureObject(ids[idx], features[idx], bboxes[idx], masks[idx])
+            feat_obj = FeatureObject.init_by_detector(features[idx], detected_objects[idx])
 
         self.features_objects.append(feat_obj)
 
@@ -54,4 +58,4 @@ class FeatureExtractorOutput:
             if id == object.id:
                 return object
 
-        return None # TODO should we raise an exception instead?
+        return None
