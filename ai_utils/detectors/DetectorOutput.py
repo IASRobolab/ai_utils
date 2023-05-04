@@ -51,11 +51,12 @@ class DetectorOutput:
             self.detected_objects[detected_obj.cls].append(detected_obj)
 
 
-    def get_detected_objects(self):
+    def get_detected_objects(self) -> dict:
         return self.detected_objects
 
 
-    def get_detected_objects_by_class(self, cls):
+
+    def get_detected_objects_by_class(self, cls: str) -> list:
         if cls in self.detected_objects.keys():
             return self.detected_objects[cls]
         return None
