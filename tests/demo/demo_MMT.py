@@ -5,6 +5,7 @@ from ai_utils.detectors.Yolov8InferTrack import Yolov8InferTrack
 
 import sys
 import select
+import time
 
 yolo_weights="/home/frollo/Utils/yolov8_tracking/weights/yolov8l-seg.pt"
 reid_weights="/home/frollo/Utils/yolov8_tracking/weights/osnet_x0_25_msmt17.pt"
@@ -29,7 +30,9 @@ while not stop_loop('q'):
 
     frame = camera.get_rgb()
     infer = yolo.img_inference(frame)
+    start = time.time()
     features = mmt.get_features(frame, infer)
+    print(1/(time.time() - start))
 
     print(features, end='\n')
     
