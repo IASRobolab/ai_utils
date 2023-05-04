@@ -22,6 +22,7 @@
 ---------------------------------------------------------------------------------------------------------------------------------'''
 from ai_utils.feature_extractors.FeatureExtractorInterface import FeatureExtractorInterface
 from ai_utils.feature_extractors.FeatureExtractorOutput import FeatureExtractorOutput
+from ai_utils.detectors.DetectorOutput import DetectedObject, DetectorOutput
 
 from mmt import models
 from mmt.utils.serialization import load_checkpoint, copy_state_dict
@@ -63,8 +64,6 @@ class MMTExtractor(FeatureExtractorInterface):
 
         super().__init__(target_class)
 
-        # TODO add num_feature, add num_classes
-
         self.transform = torch.nn.DataParallel(FastBaseTransform()).cuda()
         print('Loading REID model...', end='')
         self.model_REID = models.create(
@@ -87,24 +86,21 @@ class MMTExtractor(FeatureExtractorInterface):
         print('Done.')
 
 
-    def get_features(self, image: np.ndarray, detector_inference: dict):
+    def get_features(self, image: np.ndarray, detector_inference: DetectorOutput):
 
-        if not self.target_class in detector_inference.keys():
+        target_class_inference = detector_inference.get_detected_objects_by_class(self.target_class)
+
+        if not target_class_inference:
             return None
 
-        target_class_inference = detector_inference[self.target_class]
-        boxes = target_class_inference['boxes']
-        masks = target_class_inference['masks']
-        ids   = target_class_inference['id']
-
         images = []
-
-        for id in range(len(boxes)):
+        object : DetectedObject
+        for object in target_class_inference:
             rgb_new = image.copy()
             for i in range(3):
-                rgb_new[:, :, i] = rgb_new[:, :, i] * masks[id]
+                rgb_new[:, :, i] = rgb_new[:, :, i] * object.mask
             image_transformed = self.transform(
-                torch.from_numpy(rgb_new[boxes[id][1]:boxes[id][3], boxes[id][0]:boxes[id][2], :]).unsqueeze(
+                torch.from_numpy(rgb_new[object.bbox[1]:object.bbox[3], object.bbox[0]:object.bbox[2], :]).unsqueeze(
                     0).cuda().float())
             images.append(image_transformed[0].cuda().float())
 
@@ -114,6 +110,6 @@ class MMTExtractor(FeatureExtractorInterface):
         #self.model_REID(img_transformed.cuda()).data.cpu()[0].numpy()
         # TODO return in numpy or in torch? 
     
-        feature_out = FeatureExtractorOutput(features, boxes, masks, ids)
+        feature_out = FeatureExtractorOutput(features, target_class_inference)
         
         return feature_out
