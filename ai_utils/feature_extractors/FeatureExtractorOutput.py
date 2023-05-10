@@ -47,11 +47,11 @@ class FeatureExtractorOutput:
         self.features_objects.append(feat_obj)
 
 
-    def get_feature_objects(self):
+    def get_feature_objects(self) -> list:
         return self.features_objects
 
 
-    def get_object_by_id(self, id):
+    def get_object_by_id(self, id: int) -> FeatureObject:
 
         object: FeatureObject
         for object in self.features_objects:
