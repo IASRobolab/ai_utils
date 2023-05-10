@@ -33,12 +33,14 @@ class DetectedObject:
 
 class DetectorOutput:
 
-    def __init__(self, classes, bboxes, scores, masks=None , ids=None) -> None:
+    def __init__(self, classes, bboxes, scores, masks=None , ids=None, image=None) -> None:
         if not ids:
             ids = [-1]*len(classes)
 
         if not masks:
             masks = [None]*len(classes)
+
+        self.image = image
 
         self.detected_objects = {}
 
@@ -55,12 +57,12 @@ class DetectorOutput:
         return self.detected_objects
 
 
-
     def get_detected_objects_by_class(self, cls: str) -> list:
         if cls in self.detected_objects.keys():
             return self.detected_objects[cls]
         return None
     
+
     def get_detected_object_by_id(self, id, cls=None):
 
         if cls:
