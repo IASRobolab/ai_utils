@@ -128,62 +128,62 @@ class Yolov8InferTrack(DetectorInterface):
     annotator = Annotator(im0, line_width=self.args.line_thickness, example=str(self.names))
 
     if det is not None and len(det):
-            if self.is_seg:
-                shape = im0.shape
-                #pdb.set_trace()
-                # scale bbox first the crop masks
-                if self.args.retina_masks:
-                    det[:, :4] = scale_boxes(im.shape[2:], det[:, :4], shape).round()  # rescale boxes to im0 size
-                    if self.is_engine: 
-                      self.masks = process_mask_native(self.proto, det[:, 6:], det[:, :4], im0.shape[:2])  # HWC
-                    else:
-                      self.masks = process_mask_native(self.proto[0], det[:, 6:], det[:, :4], im0.shape[:2])  # HWC
-                else:
-                    self.masks = process_mask(self.proto[0], det[:, 6:], det[:, :4], im.shape[2:], upsample=True)  # HWC
-                    det[:, :4] = scale_boxes(im.shape[2:], det[:, :4], shape).round()  # rescale boxes to im0 size
-            else:
-                det[:, :4] = scale_boxes(im.shape[2:], det[:, :4], im0.shape).round()  # rescale boxes to im0 size
-                
-            # pass detections to strongsort
-            with self.dt[3]:
-                outputs = self.tracker.update(det.cpu(), im0)
-            
-            # draw boxes for visualization
-            if len(outputs) > 0:
-                
-                if self.is_seg:
-                    # Mask plotting
-                    annotator.masks(
-                        self.masks,
-                        colors=[colors(x, True) for x in det[:, 5]],
-                        im_gpu=torch.as_tensor(im0, dtype=torch.float16).to(self.device).permute(2, 0, 1).flip(0).contiguous() /
-                        255 if self.args.retina_masks else im[0]
-                    )
-                  
-                for j, (output) in enumerate(outputs):
-                    
-                    bbox = output[0:4]
-                    id = output[4]
-                    cls = output[5]
-                    conf = output[6]
+      if self.is_seg:
+        shape = im0.shape
+        #pdb.set_trace()
+        # scale bbox first the crop masks
+        if self.args.retina_masks:
+          det[:, :4] = scale_boxes(im.shape[2:], det[:, :4], shape).round()  # rescale boxes to im0 size
+          if self.is_engine: 
+            self.masks = process_mask_native(self.proto, det[:, 6:], det[:, :4], im0.shape[:2])  # HWC
+          else:
+            self.masks = process_mask_native(self.proto[0], det[:, 6:], det[:, :4], im0.shape[:2])  # HWC
+        else:
+          self.masks = process_mask(self.proto[0], det[:, 6:], det[:, :4], im.shape[2:], upsample=True)  # HWC
+          det[:, :4] = scale_boxes(im.shape[2:], det[:, :4], shape).round()  # rescale boxes to im0 size
+      else:
+        det[:, :4] = scale_boxes(im.shape[2:], det[:, :4], im0.shape).round()  # rescale boxes to im0 size
+          
+      # pass detections to strongsort
+      with self.dt[3]:
+        outputs = self.tracker.update(det.cpu(), im0)
+      
+      # draw boxes for visualization
+      if len(outputs) > 0 and (self.display_img or self.return_img):
+          
+        if self.is_seg:
+          # Mask plotting
+          annotator.masks(
+            self.masks,
+            colors=[colors(x, True) for x in det[:, 5]],
+            im_gpu=torch.as_tensor(im0, dtype=torch.float16).to(self.device).permute(2, 0, 1).flip(0).contiguous() /
+            255 if self.args.retina_masks else im[0]
+          )
+          
+        for j, (output) in enumerate(outputs):
+          
+          bbox = output[0:4]
+          id = output[4]
+          cls = output[5]
+          conf = output[6]
 
-                    #if self.display_img:  # Add bbox/seg to image
-                    c = int(cls)  # integer class
-                    id = int(id)  # integer id
-                    label = None if self.args.hide_labels else (f'{id} {self.names[c]}' if self.args.hide_conf else \
-                        (f'{id} {conf:.2f}' if self.args.hide_class else f'{id} {self.names[c]} {conf:.2f}'))
-                    color = colors(c, True)
-                    annotator.box_label(bbox, label, color=color)
-                          
+          #if self.display_img:  # Add bbox/seg to image
+          c = int(cls)  # integer class
+          id = int(id)  # integer id
+          label = None if self.args.hide_labels else (f'{id} {self.names[c]}' if self.args.hide_conf else \
+            (f'{id} {conf:.2f}' if self.args.hide_class else f'{id} {self.names[c]} {conf:.2f}'))
+          color = colors(c, True)
+          annotator.box_label(bbox, label, color=color)
+                        
         # Stream results
         
     if self.display_img:
-            im0 = annotator.result()
-            cv2.namedWindow("YOLO TRACKING", cv2.WINDOW_NORMAL)
-            cv2.imshow('YOLO TRACKING', im0)
-            if cv2.waitKey(1) == ord('q'):  # 1 millisecond
-                exit()
-                
+      im0 = annotator.result()
+      cv2.namedWindow("YOLO TRACKING", cv2.WINDOW_NORMAL)
+      cv2.imshow('YOLO TRACKING', im0)
+      if cv2.waitKey(1) == ord('q'):  # 1 millisecond
+        exit()
+          
     ## Block of code for alligning the tracked objects with the detected masks. For each tracked objects we return the corresponding
     ## mask (the one which has the nearest distance between the bbox tracked and detected) detected in the current frame, if present.
     if self.is_seg:
@@ -203,14 +203,13 @@ class Yolov8InferTrack(DetectorInterface):
                   outputs_track=np.vstack((outputs_track, out))
                 break
       
-    ##
     else:
       outputs_track = outputs
       masks_track = None
     if self.return_img:
-        return outputs_track, masks_track, im0
+      return outputs_track, masks_track, im0
     else:
-        return outputs_track, masks_track
+      return outputs_track, masks_track
     
       
   @torch.no_grad()
@@ -220,29 +219,29 @@ class Yolov8InferTrack(DetectorInterface):
     im0s=rgb
     im=np.stack(LetterBox(self.imgsz, self.pt, stride=self.stride)(image=im0s))
     if len(im.shape) == 3:
-            im = im[None]  # expand for batch dim
+      im = im[None]  # expand for batch dim
     
     im = im[..., ::-1].transpose((0, 3, 1, 2))  # BGR to RGB, BHWC to BCHW
     im = np.ascontiguousarray(im)  # contiguous
     with self.dt[0]:
-        im = torch.from_numpy(im).to(self.device)
-        im = im.half() if self.args.half else im.float()  # uint8 to fp16/32
-        im /= 255.0  # 0 - 255 to 0.0 - 1.0
-        if len(im.shape) == 3:
-            im = im[None]  # expand for batch dim
+      im = torch.from_numpy(im).to(self.device)
+      im = im.half() if self.args.half else im.float()  # uint8 to fp16/32
+      im /= 255.0  # 0 - 255 to 0.0 - 1.0
+      if len(im.shape) == 3:
+        im = im[None]  # expand for batch dim
 
     # Inference
     with self.dt[1]:
-        preds = self.model(im, augment=self.args.augment, visualize=False)
+      preds = self.model(im, augment=self.args.augment, visualize=False)
 
     # Apply NMS
     with self.dt[2]:
-        if self.is_seg:
-            self.masks = []
-            p = non_max_suppression(preds[0], self.args.conf_thres, self.args.iou_thres, self.args.classes, self.args.agnostic_nms, max_det=self.args.max_det, nm=32)
-            self.proto = preds[1][-1]
-        else:
-            p = non_max_suppression(preds, self.args.conf_thres, self.args.iou_thres, self.args.classes, self.args.agnostic_nms, max_det=self.args.max_det)
+      if self.is_seg:
+        self.masks = []
+        p = non_max_suppression(preds[0], self.args.conf_thres, self.args.iou_thres, self.args.classes, self.args.agnostic_nms, max_det=self.args.max_det, nm=32)
+        self.proto = preds[1][-1]
+      else:
+        p = non_max_suppression(preds, self.args.conf_thres, self.args.iou_thres, self.args.classes, self.args.agnostic_nms, max_det=self.args.max_det)
     
     if self.return_img:
       inference, masks, im_yolo_out = self.output_formatting_and_display(p, im0s, im)
@@ -268,9 +267,11 @@ class Yolov8InferTrack(DetectorInterface):
       masks = None
 
     detector_output : DetectorOutput
-    detector_output = DetectorOutput(classes, bboxes, scores, masks, ids)
 
     if self.return_img:
-      return detector_output, im_yolo_out
+      detector_output = DetectorOutput(classes, bboxes, scores, masks, ids, im_yolo_out)
+
     else:
-      return detector_output
+      detector_output = DetectorOutput(classes, bboxes, scores, masks, ids, rgb)
+
+    return detector_output
