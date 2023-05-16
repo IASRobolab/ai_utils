@@ -43,8 +43,7 @@ class FeatureExtractorOutput:
         self.features_objects = []
         for idx in range(len(features)):
             feat_obj = FeatureObject.init_by_detector(features[idx], detected_objects[idx])
-
-        self.features_objects.append(feat_obj)
+            self.features_objects.append(feat_obj)
 
 
     def get_feature_objects(self) -> list:
