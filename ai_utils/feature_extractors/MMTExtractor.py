@@ -106,9 +106,8 @@ class MMTExtractor(FeatureExtractorInterface):
 
         images = torch.stack(images, 0)
         # PASS THE IMAGES INSIDE THE EXTERNAL NETWORK
-        features = self.model_REID(images).data.cpu()
-        #self.model_REID(img_transformed.cuda()).data.cpu()[0].numpy()
-        # TODO return in numpy or in torch? 
+        # features = self.model_REID(images).data.cpu()
+        features = self.model_REID(images).data.cpu().numpy()
     
         feature_out = FeatureExtractorOutput(features, target_class_inference)
         
