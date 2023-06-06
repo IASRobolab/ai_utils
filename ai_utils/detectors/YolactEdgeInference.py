@@ -34,7 +34,7 @@ import torch.backends.cudnn as cudnn
 import argparse
 from collections import defaultdict
 import cv2
-
+import numpy as np
 from ai_utils.detectors.DetectorInterface import DetectorInterface
 
 
@@ -186,6 +186,22 @@ class YolactEdgeInference(DetectorInterface):
         with timer.env('Copy'):
             masks = t[3][:self.top_k]
             classes, scores, boxes = [x[:self.top_k].cpu().numpy() for x in t[:3]]
+            
+            ###REMOVE OBJECTS NOT IN CLASSES WHITE LIST
+            idx_rm=[]
+            if self.classes_white_list:
+              
+              for idx, cls in enumerate(classes):
+                cls_name = cfg.dataset.class_names[cls]
+                if cls_name not in self.classes_white_list:
+                  idx_rm.append(idx)
+                  
+              classes=np.delete(classes, idx_rm)
+              scores=np.delete(scores, idx_rm)
+              boxes=np.delete(boxes, idx_rm,0)
+              masks=masks.detach().clone().cpu().numpy()
+              masks=torch.from_numpy(np.delete(masks, idx_rm,0)).cuda()
+            ###
             masks_out = masks.detach().clone().cpu().numpy()
 
             # if no classes have been found return None Inference
