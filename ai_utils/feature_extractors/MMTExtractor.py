@@ -60,9 +60,9 @@ class FastBaseTransform(torch.nn.Module):
 
 class MMTExtractor(FeatureExtractorInterface):
 
-    def __init__(self, model_weights, target_class) -> None:
+    def __init__(self, model_weights, target_classes) -> None:
 
-        super().__init__(target_class)
+        super().__init__(target_classes)
 
         self.transform = torch.nn.DataParallel(FastBaseTransform()).cuda()
         print('Loading REID model...', end='')
@@ -88,27 +88,31 @@ class MMTExtractor(FeatureExtractorInterface):
 
     def get_features(self, image: np.ndarray, detector_inference: DetectorOutput):
 
-        target_class_inference = detector_inference.get_detected_objects_by_class(self.target_class)
+        target_class_inference = detector_inference.get_detected_objects_by_class(self.target_classes)
 
         if not target_class_inference:
             return None
 
         images = []
+        obj_list = []
         object : DetectedObject
-        for object in target_class_inference:
-            rgb_new = image.copy()
-            for i in range(3):
-                rgb_new[:, :, i] = rgb_new[:, :, i] * object.mask
-            image_transformed = self.transform(
-                torch.from_numpy(rgb_new[object.bbox[1]:object.bbox[3], object.bbox[0]:object.bbox[2], :]).unsqueeze(
-                    0).cuda().float())
-            images.append(image_transformed[0].cuda().float())
+
+        for cls in target_class_inference.keys():
+            for object in target_class_inference[cls]:
+                obj_list.append(object)
+                rgb_new = image.copy()
+                for i in range(3):
+                    rgb_new[:, :, i] = rgb_new[:, :, i] * object.mask
+                image_transformed = self.transform(
+                    torch.from_numpy(rgb_new[object.bbox[1]:object.bbox[3], object.bbox[0]:object.bbox[2], :]).unsqueeze(
+                        0).cuda().float())
+                images.append(image_transformed[0].cuda().float())
 
         images = torch.stack(images, 0)
         # PASS THE IMAGES INSIDE THE EXTERNAL NETWORK
         # features = self.model_REID(images).data.cpu()
         features = self.model_REID(images).data.cpu().numpy()
-    
-        feature_out = FeatureExtractorOutput(features, target_class_inference)
+
+        feature_out = FeatureExtractorOutput(features, obj_list)
         
         return feature_out
