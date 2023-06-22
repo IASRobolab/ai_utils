@@ -21,11 +21,13 @@
 # You should have received a copy of the GNU General Public License. If not, see http://www.gnu.org/licenses/
 ---------------------------------------------------------------------------------------------------------------------------------'''
 from ai_utils.detectors.DetectorOutput import DetectedObject
+import pdb
 
 class FeatureObject:
 
-    def __init__(self, id, feature, bbox, score, mask) -> None:
-        self.id = id
+    def __init__(self, cls, idx, feature, bbox, score, mask) -> None:
+        self.cls = cls
+        self.idx = idx
         self.feature = feature
         self.bbox = bbox
         self.score = score
@@ -33,28 +35,32 @@ class FeatureObject:
     
     @classmethod
     def init_by_detector(self, feature, detected_object: DetectedObject) -> None:
-        return self(detected_object.idx, feature, detected_object.bbox, detected_object.score, detected_object.mask)
+        return self(detected_object.cls, detected_object.idx, feature, detected_object.bbox, detected_object.score, detected_object.mask)
     
 
 class FeatureExtractorOutput:
 
     def __init__(self, features: list, detected_objects: list) -> None:
 
-        self.features_objects = []
+        self.features_objects = {}
+
         for idx in range(len(features)):
             feat_obj = FeatureObject.init_by_detector(features[idx], detected_objects[idx])
-            self.features_objects.append(feat_obj)
+            if not detected_objects[idx].cls in self.features_objects.keys():
+                self.features_objects[detected_objects[idx].cls] = []
+
+            self.features_objects[detected_objects[idx].cls].append(feat_obj)
 
 
-    def get_feature_objects(self) -> list:
+    def get_feature_objects(self) -> dict:
         return self.features_objects
 
 
     def get_object_by_id(self, id: int) -> FeatureObject:
 
         object: FeatureObject
-        for object in self.features_objects:
-            if id == object.id:
+        for object in list(self.features_objects.values())[0]:
+            if id == object.idx:
                 return object
 
         return None
