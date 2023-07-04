@@ -22,15 +22,15 @@
 ---------------------------------------------------------------------------------------------------------------------------------'''
 class FeatureExtractorInterface:
 
-    def __init__(self, target_classes) -> None:
-        self.set_target_class(target_classes)
+    def __init__(self, target_classes: list) -> None:
+        self.set_target_classes(target_classes)
 
 
     def get_features(self, image, detector_inference):
         raise NotImplementedError
 
     
-    def set_target_class(self, target_classes):
+    def set_target_classes(self, target_classes):
         self.target_classes = target_classes
 
 
