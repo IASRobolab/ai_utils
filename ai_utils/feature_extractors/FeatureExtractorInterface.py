@@ -24,6 +24,7 @@ class FeatureExtractorInterface:
 
     def __init__(self, target_classes: list) -> None:
         self.set_target_classes(target_classes)
+        self.cropped_images = {}
 
 
     def get_features(self, image, detector_inference):
@@ -32,5 +33,23 @@ class FeatureExtractorInterface:
     
     def set_target_classes(self, target_classes):
         self.target_classes = target_classes
+
+
+    def get_cropped_imgs(self) -> dict:
+        return self.cropped_images
+    
+
+    def get_cropped_img_by_id(self, idx: int):
+        if idx in self.cropped_images.keys():
+            return self.cropped_images[idx]
+        return None
+    
+
+    def set_network_weights(self, weights):
+        raise NotImplementedError
+
+    
+    def get_network_weights(self):
+        raise NotImplementedError
 
 
