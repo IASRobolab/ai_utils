@@ -27,12 +27,14 @@ from ai_utils.detectors.DetectorOutput import DetectedObject, DetectorOutput
 from mmt import models
 from mmt.utils.serialization import load_checkpoint, copy_state_dict
 from mmt.loss.triplet import SoftTripletLoss
+from mmt.utils.serialization import save_checkpoint
+# from mmt.loss import CrossEntropyLabelSmooth
 # from mmt.utils.lr_scheduler import WarmupMultiStepLR
 import torch
 from torch.nn import functional as F
 import numpy as np
 
-
+import os
 
 class ContinualTrain(object):
 
@@ -86,9 +88,11 @@ class FastBaseTransform(torch.nn.Module):
 
 class MMTExtractor(FeatureExtractorInterface):
 
-    def __init__(self, model_weights, target_classes, train = False) -> None:
+    def __init__(self, model_weights, target_classes, train = False, batch_size = 8, save_imgs = False) -> None:
 
-        super().__init__(target_classes)
+        super().__init__(target_classes, save_imgs)
+
+        self.continual_learning = train
 
         self.transform = torch.nn.DataParallel(FastBaseTransform()).cuda()
         print('Loading REID model...', end='')
@@ -109,13 +113,15 @@ class MMTExtractor(FeatureExtractorInterface):
             exit(1)
         copy_state_dict(checkpoint['state_dict'], self.model_REID)
         if train:
+            self.batch_size = batch_size
+            self.batch_multiplier = 0
             self.model_REID.train()
             self.trainer = ContinualTrain(self.model_REID)
             params = []
             for key, value in self.model_REID.named_parameters():
                 if not value.requires_grad:
                     continue
-                params += [{"params": [value], "lr": 0.00035, "weight_decay": 5e-4}]
+                params += [{"params": [value], "lr": 0.00035, "weight_decay": 5e-4}] # 0.00035
             self.optimizer = torch.optim.Adam(params)
             # self.lr_scheduler = WarmupMultiStepLR(optimizer, [40, 70], gamma=0.1, warmup_factor=0.01, warmup_iters=10)
         else:
@@ -134,7 +140,11 @@ class MMTExtractor(FeatureExtractorInterface):
         obj_list = []
         object : DetectedObject
 
+
+        if self.save_imgs:
+            self.original_images.clear()
         self.cropped_images.clear()
+
 
         for cls in target_class_inference.keys():
             for object in target_class_inference[cls]:
@@ -143,15 +153,14 @@ class MMTExtractor(FeatureExtractorInterface):
                 for i in range(3):
                     rgb_new[:, :, i] = rgb_new[:, :, i] * object.mask
 
-                cropped_img = rgb_new[object.bbox[1]:object.bbox[3], object.bbox[0]:object.bbox[2], :]
-                self.cropped_images[object.idx] = cropped_img
-                # TODO see if it is better to pass in torch format
-
                 image_transformed = self.transform(
-                    torch.from_numpy(cropped_img).unsqueeze(0).cuda().float()
+                    torch.from_numpy(rgb_new[object.bbox[1]:object.bbox[3], object.bbox[0]:object.bbox[2], :]).unsqueeze(0).cuda().float()
                 )
                 trasf_img = image_transformed[0].cuda().float()
                 images.append(trasf_img)
+
+                if self.save_imgs:
+                    self.original_images[object.idx] = rgb_new[object.bbox[1]:object.bbox[3], object.bbox[0]:object.bbox[2], :]
                 self.cropped_images[object.idx] = trasf_img
 
         images = torch.stack(images, 0)
@@ -164,6 +173,19 @@ class MMTExtractor(FeatureExtractorInterface):
         return feature_out
     
 
+    def get_pure_feature(self, images, batch = 8):
+        idx = 0
+        features = []
+        length = len(images)
+
+        while (idx*batch < length):
+            batch_idx = idx*batch
+            imgs = torch.stack(images[batch_idx:batch_idx+batch], 0)
+            features += self.model_REID(imgs).data.cpu().numpy().tolist()
+            idx += 1
+
+        return features
+
     # substitute network weights
     def set_network_weights(self, state_dict):
         copy_state_dict(state_dict, self.model_REID)
@@ -174,13 +196,42 @@ class MMTExtractor(FeatureExtractorInterface):
     
 
     # Train the network in continual learning manner
-    def cl_train(self, images):
+    def cl_train(self, imgs: list):
         # lr_scheduler.step()
 
-        # batch_imgs = torch.cat(images)
-        batch_imgs = torch.stack(images, 0)
-        targets = torch.zeros(batch_imgs.shape[0])
-        target_len = int(len(images)/2)
+        targets = torch.zeros(self.batch_size).type(dtype=torch.int64)
+
+        target_len = int(self.batch_size/2)
         targets[0:target_len] = 1
         targets = targets.cuda()
-        self.trainer.train(batch_imgs, targets, self.optimizer)
+
+        images_len = len(imgs)
+
+        self.batch_multiplier = int(images_len/self.batch_size)
+
+        for iter in range(self.batch_multiplier):
+            target_start = iter * int(self.batch_size/2)
+            target_end = target_start + int(self.batch_size/2)
+
+            distractor_start = target_start + int(images_len/2)
+            distractor_end = distractor_start + int(self.batch_size/2)
+
+            target_imgs = imgs[target_start:target_end]
+            distractor_imgs = imgs[distractor_start:distractor_end]
+
+            batch_imgs = torch.stack(target_imgs + distractor_imgs, 0)
+            self.trainer.train(batch_imgs, targets, self.optimizer)
+
+
+    def save_weights(self, path):
+
+        weights_name = 'checkpoint_' + str(self.batch_size) + '_' + str(self.batch_multiplier) + '.pth.tar'
+
+        weights = self.model_REID.state_dict()
+        save_checkpoint(
+            {
+            'state_dict': weights,
+            }, 
+            False, 
+            fpath=os.path.join(path, weights_name)
+        )
