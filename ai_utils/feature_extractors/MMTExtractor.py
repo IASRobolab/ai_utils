@@ -132,7 +132,7 @@ class MMTExtractor(FeatureExtractorInterface):
     def get_features(self, image: np.ndarray, detector_inference: DetectorOutput):
 
         target_class_inference = detector_inference.get_detected_objects_by_class(self.target_classes)
-
+        
         if not target_class_inference:
             return None
 
@@ -148,6 +148,7 @@ class MMTExtractor(FeatureExtractorInterface):
 
         for cls in target_class_inference.keys():
             for object in target_class_inference[cls]:
+
                 obj_list.append(object)
                 rgb_new = image.copy()
                 for i in range(3):
@@ -166,6 +167,7 @@ class MMTExtractor(FeatureExtractorInterface):
         images = torch.stack(images, 0)
 
         # PASS THE IMAGES INSIDE THE EXTERNAL NETWORK
+
         features = self.model_REID(images).data.cpu().numpy()
 
         feature_out = FeatureExtractorOutput(features, obj_list)
@@ -204,6 +206,14 @@ class MMTExtractor(FeatureExtractorInterface):
         target_len = int(self.batch_size/2)
         targets[0:target_len] = 1
         targets = targets.cuda()
+
+        images_len = len(imgs)
+
+        # format images compliant to batch (discard the one in eccess)
+        check_batch_multiple = (images_len/2)%self.batch_size
+        if check_batch_multiple != 0:
+            batch_compliant_length = images_len/2 - check_batch_multiple
+            imgs = imgs[:int(batch_compliant_length)] + imgs[int(images_len/2):int(images_len/2+batch_compliant_length)]
 
         images_len = len(imgs)
 
