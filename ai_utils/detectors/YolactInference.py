@@ -33,9 +33,8 @@ import torch.backends.cudnn as cudnn
 import argparse
 from collections import defaultdict
 import cv2
-
 from ai_utils.detectors.DetectorInterface import DetectorInterface
-
+import numpy as np
 
 def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
@@ -160,14 +159,31 @@ class YolactInference(DetectorInterface):
 
             classes, scores, boxes = [x[idx].cpu().numpy() for x in t[:3]]
             masks = t[3][idx]
+            
+            ###REMOVE OBJECTS NOT IN CLASSES WHITE LIST
+            idx_rm=[]
+            if self.classes_white_list:
+              
+              for idx, cls in enumerate(classes):
+                cls_name = cfg.dataset.class_names[cls]
+                if cls_name not in self.classes_white_list:
+                  idx_rm.append(idx)
+                  
+              classes=np.delete(classes, idx_rm)
+              scores=np.delete(scores, idx_rm)
+              boxes=np.delete(boxes, idx_rm,0)
+              masks=masks.detach().clone().cpu().numpy()
+              masks=torch.from_numpy(np.delete(masks, idx_rm,0)).cuda()
+            ###
+            
             masks_out = masks.detach().clone().cpu().numpy()
-
+            
             # if no classes have been found return None Inference
             if classes.shape[0] == 0:
                 inference = None
             else:
                 inference = [classes, scores, boxes, masks_out]
-
+            
         if self.display_img or self.return_img:
 
             num_dets_to_consider = min(self.top_k, classes.shape[0])
@@ -274,7 +290,6 @@ class YolactInference(DetectorInterface):
             if self.display_img:
               cv2.namedWindow("Yolact", cv2.WINDOW_NORMAL)
               cv2.imshow("Yolact", img_numpy)
-
               if cv2.waitKey(1) == ord('q'):
                   print("Closed Yolact Image Viewer.")
                   exit(0)
